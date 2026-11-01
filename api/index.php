@@ -33,9 +33,14 @@ $dbTarget = '/tmp/database.sqlite';
 if (!file_exists($dbTarget) && file_exists($dbSource)) {
     copy($dbSource, $dbTarget);
 }
-if (file_exists($dbTarget)) {
-    putenv("DB_DATABASE={$dbTarget}");
-}
+
+$_ENV['DB_CONNECTION'] = 'sqlite';
+$_SERVER['DB_CONNECTION'] = 'sqlite';
+putenv('DB_CONNECTION=sqlite');
+
+$_ENV['DB_DATABASE'] = $dbTarget;
+$_SERVER['DB_DATABASE'] = $dbTarget;
+putenv("DB_DATABASE={$dbTarget}");
 
 // Jalankan Laravel public/index.php
 require __DIR__ . '/../public/index.php';

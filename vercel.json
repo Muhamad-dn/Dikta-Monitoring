@@ -28,6 +28,8 @@
     "APP_KEY": "base64:LUPIGQNkHnCJcOuWmkADGoMNZcdMX6pTOcTqTlzbPmE=",
     "APP_ENV": "production",
     "APP_DEBUG": "true",
+    "DB_CONNECTION": "sqlite",
+    "DB_DATABASE": "/tmp/database.sqlite",
     "APP_CONFIG_CACHE": "/tmp/bootstrap/cache/config.php",
     "APP_EVENTS_CACHE": "/tmp/bootstrap/cache/events.php",
     "APP_PACKAGES_CACHE": "/tmp/bootstrap/cache/packages.php",
