@@ -25,6 +25,7 @@
     }
   ],
   "env": {
+    "APP_KEY": "base64:LUPIGQNkHnCJcOuWmkADGoMNZcdMX6pTOcTqTlzbPmE=",
     "APP_ENV": "production",
     "APP_DEBUG": "true",
     "APP_CONFIG_CACHE": "/tmp/bootstrap/cache/config.php",
