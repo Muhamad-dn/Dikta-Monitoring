@@ -78,6 +78,9 @@
         <!-- Search Bar No. Registrasi / Pelanggan / Device -->
         <div class="p-4 bg-slate-50/70 border-b border-slate-100">
             <form method="GET" action="{{ route('admin.devices.stock') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                @if(request('hub'))
+                    <input type="hidden" name="hub" value="{{ request('hub') }}">
+                @endif
                 <div class="relative flex-1">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -90,7 +93,7 @@
                     <div class="absolute inset-y-0 right-0 pr-1.5 flex items-center gap-1">
                         <button type="button" 
                                 x-show="searchQuery" 
-                                @click="searchQuery = ''; if('{{ request('search') }}') window.location.href='{{ route('admin.devices.stock') }}';" 
+                                @click="searchQuery = ''; window.location.href='{{ route('admin.devices.stock', array_filter(['hub' => request('hub')])) }}';" 
                                 class="px-2 py-0.5 text-[10px] font-semibold text-slate-500 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
                                 title="Bersihkan input pencarian" x-cloak>
                             ✕ Hapus
@@ -115,7 +118,7 @@
                 <div x-show="searchQuery" class="flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 shrink-0" x-cloak>
                     <span>Menampilkan:</span>
                     <strong x-text="matchCount"></strong>
-                    <span>dari {{ $devicesInWarehouse->count() }} unit</span>
+                    <span>dari {{ $devicesInWarehouse->total() }} unit</span>
                 </div>
             </form>
         </div>
@@ -123,7 +126,7 @@
         <!-- Feedback Banner Scan Barcode Linier -->
         @if(request('highlight'))
             @php
-                $highlightedDev = $devicesInWarehouse->firstWhere('id', request('highlight'));
+                $highlightedDev = $devicesInWarehouse->firstWhere('id', request('highlight')) ?? \App\Models\Device::find(request('highlight'));
             @endphp
             @if($highlightedDev)
                 <div class="p-3.5 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-transparent border-b border-amber-300/80 dark:border-amber-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -275,6 +278,12 @@
                 </tbody>
             </table>
         </div>
+
+        @if($devicesInWarehouse->hasPages())
+            <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                {{ $devicesInWarehouse->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- Modal Alokasi Stok HB Dikta ke Teknisi -->
@@ -994,15 +1003,20 @@ function stockAllocationApp() {
         filterTableFromScan() {
             if (!this.scannedDevice) return;
             const id = this.scannedDevice.id;
-            this.highlightedDeviceId = id;
-            this.searchQuery = this.scannedDevice.registration_number;
+            const reg = this.scannedDevice.registration_number;
+            const hub = (this.scannedDevice.stock_status === 'tersedia_hb_ckr') ? 'hb_ckr' : 'hb_jkt';
             this.closeScannerModal();
-            this.$nextTick(() => {
-                const row = document.getElementById('device-row-' + id);
-                if (row) {
+
+            const row = document.getElementById('device-row-' + id);
+            if (row) {
+                this.highlightedDeviceId = id;
+                this.searchQuery = reg;
+                this.$nextTick(() => {
                     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            });
+                });
+            } else {
+                window.location.href = "{{ route('admin.devices.stock') }}?hub=" + hub + "&search=" + encodeURIComponent(reg) + "&highlight=" + id;
+            }
         },
 
         clearScanFilter() {

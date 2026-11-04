@@ -209,4 +209,41 @@ class AdminNotificationStockTest extends TestCase
         $response->assertSee('Bivocom Industrial 4G Router');
         $response->assertSee('Unit Baru Ditambahkan');
     }
+
+    public function test_stock_page_is_paginated_to_10_devices_per_slide()
+    {
+        for ($i = 1; $i <= 25; $i++) {
+            Device::create([
+                'registration_number' => "REG-STOCK-{$i}",
+                'serial_number' => "SN-STOCK-{$i}",
+                'name' => "Device Stock {$i}",
+                'brand' => 'Brand',
+                'model' => 'Model',
+                'type' => 'ONT',
+                'area' => 'CDA',
+                'stock_status' => 'tersedia_hb_jkt',
+                'current_location' => 'Gudang HB JKT',
+                'condition' => 'baru',
+            ]);
+        }
+
+        $response = $this->actingAs($this->admin)->get(route('admin.devices.stock'));
+        $response->assertOk();
+
+        // Menampilkan pagination / slide bar
+        $response->assertSee('Showing');
+        $response->assertSee('10');
+        $response->assertSee('25');
+        $response->assertSee('results');
+
+        // Slide / halaman 1 hanya memuat 10 unit
+        $response->assertSee('REG-STOCK-25');
+        $response->assertSee('REG-STOCK-16');
+        $response->assertDontSee('REG-STOCK-15');
+
+        // Slide / halaman 2 memuat 10 unit berikutnya
+        $page2Response = $this->actingAs($this->admin)->get(route('admin.devices.stock', ['page' => 2]));
+        $page2Response->assertOk();
+        $page2Response->assertSee('REG-STOCK-15');
+    }
 }

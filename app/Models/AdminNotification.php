@@ -90,3 +90,4 @@ class AdminNotification extends Model
             : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700';
     }
 }
+

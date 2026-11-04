@@ -178,6 +178,32 @@
         html.dark .text-emerald-800 {
             color: #6ee7b7 !important;
         }
+
+        /* Pagination in dark mode */
+        html.dark nav[role="navigation"] {
+            color: #cbd5e1 !important;
+        }
+        html.dark nav[role="navigation"] p {
+            color: #94a3b8 !important;
+        }
+        html.dark nav[role="navigation"] span.font-medium {
+            color: #f1f5f9 !important;
+        }
+        html.dark nav[role="navigation"] span.relative,
+        html.dark nav[role="navigation"] a.relative {
+            background-color: #141c2e !important;
+            border-color: #243048 !important;
+            color: #cbd5e1 !important;
+        }
+        html.dark nav[role="navigation"] span[aria-current="page"] span {
+            background-color: #2563eb !important;
+            border-color: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+        html.dark nav[role="navigation"] a.relative:hover {
+            background-color: #1e293b !important;
+            color: #ffffff !important;
+        }
         html.dark .text-blue-700,
         html.dark .text-blue-800 {
             color: #93c5fd !important;

@@ -820,7 +820,7 @@ class DeviceController extends Controller
                   ->orWhere('nojar', 'like', "%{$search}%");
             });
         }
-        $devicesInWarehouse = $warehouseQuery->latest()->get();
+        $devicesInWarehouse = $warehouseQuery->latest('id')->paginate(10)->withQueryString();
 
         $devicesInWarehouseData = $devicesInWarehouse->map(function($d) {
             return [
