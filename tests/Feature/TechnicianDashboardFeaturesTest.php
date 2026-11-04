@@ -239,7 +239,9 @@ class TechnicianDashboardFeaturesTest extends TestCase
             'condition' => 'baru',
         ]);
 
-        $fakePhoto = UploadedFile::fake()->image('bukti_instalasi.jpg', 600, 400);
+        $fakePhoto = extension_loaded('gd') 
+            ? UploadedFile::fake()->image('bukti_instalasi.jpg', 600, 400)
+            : UploadedFile::fake()->create('bukti_instalasi.jpg', 100, 'image/jpeg');
 
         $response = $this->actingAs($technician)->post(route('technician.devices.update-status'), [
             'device_id' => $device->id,

@@ -228,13 +228,77 @@
 
                     <label class="p-3 rounded-xl border-2 cursor-pointer flex items-center justify-center gap-2 transition-all has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/70 hover:border-slate-300 bg-white">
                         <input type="radio" name="activity" value="Spare Dikta" x-model="selectedActivity" {{ old('activity') === 'Spare Dikta' ? 'checked' : '' }} class="text-blue-600 focus:ring-blue-500">
-                        <span class="font-bold text-xs text-slate-900">Spare Dikta</span>
+                        <span class="font-bold text-xs text-slate-900">Spare Dikta (Stok HB)</span>
                     </label>
                 </div>
             </div>
 
-            <!-- Kolom Teknisi Bertugas -->
-            <div class="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/80">
+            <!-- Pilihan Lokasi Gudang Stok HB & Sumber Perangkat (Saat Aktivitas: Spare Dikta) -->
+            <div x-show="selectedActivity === 'Spare Dikta'" x-transition class="p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/30 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-emerald-950 dark:text-emerald-300 mb-1.5 flex items-center gap-1.5">
+                        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                        <span>Pilihan Gudang Stok HB Tujuan <span class="text-rose-500">*</span></span>
+                    </label>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">Tentukan ke mana unit spare ini akan dimasukkan ke stok inventaris sistem</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="p-3.5 rounded-xl border-2 cursor-pointer flex items-center gap-3 transition-all has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50/80 dark:has-[:checked]:bg-emerald-950/40 hover:border-slate-300 bg-white dark:bg-slate-900">
+                            <input type="radio" name="warehouse_hub" value="hb_jkt" checked class="text-emerald-600 focus:ring-emerald-500">
+                            <div>
+                                <div class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span>Gudang HB JKT</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">Tersedia di HB JKT</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Stok Homebase Jakarta (Siap dialokasikan)</div>
+                            </div>
+                        </label>
+
+                        <label class="p-3.5 rounded-xl border-2 cursor-pointer flex items-center gap-3 transition-all has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50/80 dark:has-[:checked]:bg-teal-950/40 hover:border-slate-300 bg-white dark:bg-slate-900">
+                            <input type="radio" name="warehouse_hub" value="hb_ckr" class="text-teal-600 focus:ring-teal-500">
+                            <div>
+                                <div class="font-bold text-xs text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <span>Gudang HB CKR</span>
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-300">Tersedia di HB CKR</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Stok Homebase Cikarang (Siap dialokasikan)</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Sumber Pengambilan -->
+                <div class="pt-3 border-t border-emerald-500/20">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-emerald-950 dark:text-emerald-300 mb-1.5">
+                        Sumber / Asal Pengambilan Unit
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label class="p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 bg-white dark:bg-slate-900 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 dark:has-[:checked]:bg-blue-950/30">
+                            <input type="radio" name="source_origin" value="Lintasarta (Gudang Tekno / Drop Point)" checked class="text-blue-600 focus:ring-blue-500">
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                Diambil dari Lintasarta
+                                <span class="block text-[10px] text-slate-500 font-normal">Gudang Tekno / Area Lintasarta</span>
+                            </div>
+                        </label>
+
+                        <label class="p-2.5 rounded-xl border cursor-pointer flex items-center gap-2.5 bg-white dark:bg-slate-900 has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50/50 dark:has-[:checked]:bg-blue-950/30">
+                            <input type="radio" name="source_origin" value="Internal PT DIKTA" class="text-blue-600 focus:ring-blue-500">
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">
+                                Internal PT DIKTA
+                                <span class="block text-[10px] text-slate-500 font-normal">Stok inventaris internal</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="mt-2.5 flex items-center gap-2 text-[11px] text-emerald-800 dark:text-emerald-300 bg-emerald-100/70 dark:bg-emerald-950/50 p-2 rounded-xl border border-emerald-200 dark:border-emerald-800/60">
+                        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Notifikasi otomatis akan langsung dikirimkan ke <strong>Admin</strong> saat perangkat disimpan ke stok Gudang HB JKT / HB CKR.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kolom Teknisi Bertugas (Hanya Jika Dibawa ke Lapangan) -->
+            <div x-show="selectedActivity !== 'Spare Dikta'" class="p-4 rounded-2xl bg-amber-50/40 border border-amber-200/80">
                 <label for="tech_technician_id" class="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-1.5">
                     Teknisi Bertugas (Pemegang Perangkat)
                 </label>

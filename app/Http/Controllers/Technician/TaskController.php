@@ -9,6 +9,7 @@ use App\Models\DeviceSpecification;
 use App\Models\DeviceHistory;
 use App\Models\WorkOrderEvidence;
 use App\Models\User;
+use App\Models\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -433,6 +434,25 @@ class TaskController extends Controller
                 'notes' => 'Dikembalikan oleh teknisi ' . auth()->user()->name . '. ' . ($request->return_notes ? "Catatan: {$request->return_notes}" : ''),
             ]);
 
+            AdminNotification::create([
+                'device_id' => $device->id,
+                'technician_id' => auth()->id(),
+                'actor_id' => auth()->id(),
+                'type' => 'device_returned_stock',
+                'title' => 'Perangkat Dikembalikan ke Stok HB JKT',
+                'message' => 'Teknisi ' . auth()->user()->name . " mengembalikan perangkat {$device->name} ({$device->registration_number}) ke Gudang HB JKT.",
+                'registration_number' => $device->registration_number,
+                'device_name' => $device->name,
+                'hub' => 'hb_jkt',
+                'source' => 'Pengembalian Teknisi',
+                'target_url' => route('admin.devices.stock', [
+                    'hub' => 'hb_jkt',
+                    'search' => $device->registration_number,
+                    'highlight' => $device->id,
+                ]),
+                'is_read' => false,
+            ]);
+
             return back()->with('success', "Perangkat {$device->registration_number} telah berhasil dikembalikan ke Gudang HB JKT.");
         } elseif ($destination === 'Gudang HB CKR') {
             $device->stock_status = ($request->condition === 'rusak') ? 'rusak' : 'tersedia_hb_ckr';
@@ -451,6 +471,25 @@ class TaskController extends Controller
                 'from_location' => $oldLocation,
                 'to_location' => 'Gudang HB CKR',
                 'notes' => 'Dikembalikan oleh teknisi ' . auth()->user()->name . '. ' . ($request->return_notes ? "Catatan: {$request->return_notes}" : ''),
+            ]);
+
+            AdminNotification::create([
+                'device_id' => $device->id,
+                'technician_id' => auth()->id(),
+                'actor_id' => auth()->id(),
+                'type' => 'device_returned_stock',
+                'title' => 'Perangkat Dikembalikan ke Stok HB CKR',
+                'message' => 'Teknisi ' . auth()->user()->name . " mengembalikan perangkat {$device->name} ({$device->registration_number}) ke Gudang HB CKR.",
+                'registration_number' => $device->registration_number,
+                'device_name' => $device->name,
+                'hub' => 'hb_ckr',
+                'source' => 'Pengembalian Teknisi',
+                'target_url' => route('admin.devices.stock', [
+                    'hub' => 'hb_ckr',
+                    'search' => $device->registration_number,
+                    'highlight' => $device->id,
+                ]),
+                'is_read' => false,
             ]);
 
             return back()->with('success', "Perangkat {$device->registration_number} telah berhasil dikembalikan ke Gudang HB CKR.");
@@ -617,9 +656,17 @@ class TaskController extends Controller
             'customer_name' => 'nullable|string|max:100',
             'address' => 'nullable|string|max:500',
             'activity' => 'required|in:Instalasi Baru,Ganti Perangkat / Rusak,Upgrade Perangkat,Troubleshoot,Simulasi,Spare Dikta,Survey,PSB',
+            'warehouse_hub' => 'nullable|string|in:hb_jkt,hb_ckr',
+            'source_origin' => 'nullable|string|max:100',
             'technician_id' => 'nullable|exists:users,id',
             'notes' => 'nullable|string',
         ]);
+
+        $targetHub = $request->input('warehouse_hub', 'hb_jkt');
+        $hubLocation = ($targetHub === 'hb_ckr') ? 'Gudang HB CKR' : 'Gudang HB JKT';
+        $hubStockStatus = ($targetHub === 'hb_ckr') ? 'tersedia_hb_ckr' : 'tersedia_hb_jkt';
+        $hubName = ($targetHub === 'hb_ckr') ? 'HB CKR' : 'HB JKT';
+        $sourceOrigin = $request->input('source_origin', 'Lintasarta');
 
         if (!empty($validated['kode_spek'])) {
             DeviceSpecification::firstOrCreate(
@@ -662,8 +709,8 @@ class TaskController extends Controller
 
             if ($validated['activity'] === 'Spare Dikta') {
                 $updateData['current_technician_id'] = null;
-                $updateData['stock_status'] = 'tersedia_hb_jkt';
-                $updateData['current_location'] = 'Gudang HB JKT (Stok Spare)';
+                $updateData['stock_status'] = $hubStockStatus;
+                $updateData['current_location'] = "{$hubLocation} (Stok Spare)";
             } else {
                 $updateData['current_technician_id'] = $technician ? $technician->id : auth()->id();
                 $updateData['stock_status'] = 'dibawa_teknisi';
@@ -686,10 +733,32 @@ class TaskController extends Controller
                 'new_status' => $device->stock_status,
                 'from_location' => $previousLocation,
                 'to_location' => $device->current_location,
-                'notes' => 'Didaftarkan ulang oleh teknisi ' . auth()->user()->name . '. Aktivitas: ' . $validated['activity'],
+                'notes' => 'Didaftarkan ulang oleh teknisi ' . auth()->user()->name . '. Aktivitas: ' . $validated['activity'] . ($validated['activity'] === 'Spare Dikta' ? " (Sumber: {$sourceOrigin}, Disimpan di {$hubLocation})" : ''),
             ]);
+
+            // Buat Notifikasi Admin jika perangkat dimasukkan ke stok HB JKT / HB CKR
+            if ($validated['activity'] === 'Spare Dikta') {
+                AdminNotification::create([
+                    'device_id' => $device->id,
+                    'technician_id' => auth()->id(),
+                    'actor_id' => auth()->id(),
+                    'type' => 'device_added_stock',
+                    'title' => "Perangkat Baru Ditambahkan ke Stok {$hubName}",
+                    'message' => 'Teknisi ' . auth()->user()->name . " mengambil perangkat {$device->name} (No. Reg: {$device->registration_number}) dari {$sourceOrigin} dan menambahkannya ke Stok Gudang {$hubName}.",
+                    'registration_number' => $device->registration_number,
+                    'device_name' => $device->name,
+                    'hub' => $targetHub,
+                    'source' => $sourceOrigin,
+                    'target_url' => route('admin.devices.stock', [
+                        'hub' => $targetHub,
+                        'search' => $device->registration_number,
+                        'highlight' => $device->id,
+                    ]),
+                    'is_read' => false,
+                ]);
+            }
         } else {
-            $serialNumber = $validated['serial_number'] ?: ('SN-' . strtoupper(substr(md5(uniqid()), 0, 8)));
+            $serialNumber = !empty($validated['serial_number']) ? $validated['serial_number'] : ('SN-' . strtoupper(substr(md5(uniqid()), 0, 8)));
             $brand = 'Lainnya';
             if (stripos($validated['name'], 'Cisco') !== false) $brand = 'Cisco';
             elseif (stripos($validated['name'], 'Huawei') !== false) $brand = 'Huawei';
@@ -699,10 +768,10 @@ class TaskController extends Controller
             elseif (stripos($validated['name'], 'Fortinet') !== false) $brand = 'Fortinet';
             elseif (stripos($validated['name'], 'Cambium') !== false) $brand = 'Cambium';
 
-            $stockStatus = ($validated['activity'] === 'Spare Dikta') ? 'tersedia_hb_jkt' : 'dibawa_teknisi';
+            $stockStatus = ($validated['activity'] === 'Spare Dikta') ? $hubStockStatus : 'dibawa_teknisi';
             $currentTechId = ($validated['activity'] === 'Spare Dikta') ? null : ($technician ? $technician->id : auth()->id());
             $location = ($validated['activity'] === 'Spare Dikta') 
-                ? 'Gudang HB JKT (Stok Spare)' 
+                ? "{$hubLocation} (Stok Spare)" 
                 : 'Dibawa oleh Teknisi ' . ($technician ? $technician->name : auth()->user()->name);
 
             $device = Device::create([
@@ -715,14 +784,14 @@ class TaskController extends Controller
                 'type' => 'ONT',
                 'area' => $validated['area'] ?? 'BWA',
                 'activity' => $validated['activity'],
-                'nojar' => $validated['nojar'],
-                'customer_name' => $validated['customer_name'],
-                'address' => $validated['address'],
+                'nojar' => $validated['nojar'] ?? null,
+                'customer_name' => $validated['customer_name'] ?? null,
+                'address' => $validated['address'] ?? null,
                 'stock_status' => $stockStatus,
                 'current_technician_id' => $currentTechId,
                 'current_location' => $location,
                 'condition' => 'baru',
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             DeviceHistory::create([
@@ -732,10 +801,32 @@ class TaskController extends Controller
                 'action' => 'Pendaftaran Perangkat Baru oleh Teknisi',
                 'previous_status' => null,
                 'new_status' => $stockStatus,
-                'from_location' => 'Pendaftaran Baru',
+                'from_location' => ($validated['activity'] === 'Spare Dikta') ? "Pengambilan {$sourceOrigin}" : 'Pendaftaran Baru',
                 'to_location' => $location,
-                'notes' => 'Didaftarkan oleh teknisi ' . auth()->user()->name . '. Aktivitas: ' . $validated['activity'],
+                'notes' => 'Didaftarkan oleh teknisi ' . auth()->user()->name . '. Aktivitas: ' . $validated['activity'] . ($validated['activity'] === 'Spare Dikta' ? " (Sumber: {$sourceOrigin}, Disimpan di {$hubLocation})" : ''),
             ]);
+
+            // Buat Notifikasi Admin jika perangkat dimasukkan ke stok HB JKT / HB CKR
+            if ($validated['activity'] === 'Spare Dikta') {
+                AdminNotification::create([
+                    'device_id' => $device->id,
+                    'technician_id' => auth()->id(),
+                    'actor_id' => auth()->id(),
+                    'type' => 'device_added_stock',
+                    'title' => "Perangkat Baru Ditambahkan ke Stok {$hubName}",
+                    'message' => 'Teknisi ' . auth()->user()->name . " mengambil perangkat {$device->name} (No. Reg: {$device->registration_number}) dari {$sourceOrigin} dan menambahkannya ke Stok Gudang {$hubName}.",
+                    'registration_number' => $device->registration_number,
+                    'device_name' => $device->name,
+                    'hub' => $targetHub,
+                    'source' => $sourceOrigin,
+                    'target_url' => route('admin.devices.stock', [
+                        'hub' => $targetHub,
+                        'search' => $device->registration_number,
+                        'highlight' => $device->id,
+                    ]),
+                    'is_read' => false,
+                ]);
+            }
         }
 
         // Jika ada nojar dan bukan spare dikta, buat work order jika belum ada

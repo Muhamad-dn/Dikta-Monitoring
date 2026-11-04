@@ -377,6 +377,104 @@
                 </div>
 
                 <div class="flex items-center gap-2 sm:gap-3">
+                    @if(in_array(auth()->user()->role, ['admin', 'koordinator']))
+                    <!-- NOTIFIKASI ADMIN: PERANGKAT DARI LINTASARTA KE STOK HB -->
+                    <div class="relative" x-data="adminNotificationApp()" x-cloak>
+                        <!-- Tombol Lonceng Notifikasi -->
+                        <button type="button" 
+                                @click="toggleMenu()"
+                                class="relative inline-flex items-center justify-center p-2 rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 transition-all focus:outline-none shadow-xs"
+                                :class="open ? 'ring-2 ring-brand-500' : ''"
+                                title="Notifikasi Penambahan Perangkat ke Stok HB">
+                            <svg class="w-4 h-4 text-slate-700 dark:text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <!-- Badge Merah Jumlah Unread -->
+                            <span x-show="unreadCount > 0" 
+                                  class="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-rose-600 text-[10px] font-black text-white shadow-xs animate-pulse">
+                                <span x-text="unreadCount > 9 ? '9+' : unreadCount"></span>
+                            </span>
+                        </button>
+
+                        <!-- Dropdown Panel Notifikasi -->
+                        <div x-show="open" 
+                             @click.away="open = false" 
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                             class="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white dark:bg-[#131c31] border border-slate-200 dark:border-[#243048] shadow-2xl z-50 overflow-hidden">
+                            
+                            <!-- Header Dropdown -->
+                            <div class="px-4 py-3 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                                    </div>
+                                    <h4 class="text-xs font-bold text-slate-900 dark:text-white">Notifikasi Perangkat</h4>
+                                    <span x-show="unreadCount > 0" class="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300" x-text="unreadCount + ' Baru'"></span>
+                                </div>
+                                <button type="button" 
+                                        x-show="unreadCount > 0"
+                                        @click="markAllAsRead()"
+                                        class="text-[11px] font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+                                    Tandai Semua Dibaca
+                                </button>
+                            </div>
+
+                            <!-- List Item Notifikasi (Scrollable) -->
+                            <div class="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                                <template x-for="item in items" :key="item.id">
+                                    <a :href="item.go_url" 
+                                       class="p-3.5 block transition-colors group relative hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                                       :class="!item.is_read ? 'bg-amber-50/40 dark:bg-amber-950/20' : ''">
+                                        <div class="flex items-start gap-3">
+                                            <!-- Hub Badge Tag -->
+                                            <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold shrink-0 mt-0.5 uppercase tracking-wide"
+                                                  :class="item.hub === 'hb_ckr' ? 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border border-teal-300 dark:border-teal-700' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'"
+                                                  x-text="item.hub_label || 'HB JKT'">
+                                            </span>
+
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between gap-1">
+                                                    <p class="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-brand-600 transition-colors" x-text="item.title"></p>
+                                                    <span x-show="!item.is_read" class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                                                </div>
+
+                                                <p class="text-[11px] text-slate-600 dark:text-slate-300 line-clamp-2 mt-0.5 leading-snug" x-text="item.message"></p>
+
+                                                <div class="flex items-center justify-between gap-2 mt-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                                                    <span class="font-mono font-bold text-slate-700 dark:text-slate-300" x-text="item.registration_number"></span>
+                                                    <span x-text="item.time_ago"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </template>
+
+                                <!-- State Kosong -->
+                                <div x-show="items.length === 0" class="py-8 px-4 text-center">
+                                    <svg class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Belum ada notifikasi perangkat baru</p>
+                                </div>
+                            </div>
+
+                            <!-- Footer Dropdown -->
+                            <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold">
+                                <a href="{{ route('admin.devices.stock', ['hub' => 'hb_jkt']) }}" class="text-emerald-700 dark:text-emerald-400 hover:underline">
+                                    Stok HB JKT &rarr;
+                                </a>
+                                <a href="{{ route('admin.devices.stock', ['hub' => 'hb_ckr']) }}" class="text-teal-700 dark:text-teal-400 hover:underline">
+                                    Stok HB CKR &rarr;
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                    @endif
+
                     <!-- Tombol Toggle Mode Gelap / Terang -->
                     <button type="button" 
                             id="themeToggleBtn"
@@ -549,6 +647,81 @@
                 window.location.reload();
             }, 2000);
         }
+
+        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'koordinator']))
+        function adminNotificationApp() {
+            return {
+                open: false,
+                unreadCount: {{ $adminUnreadNotificationCount ?? 0 }},
+                items: [
+                    @if(isset($adminNotifications))
+                        @foreach($adminNotifications as $notif)
+                        {
+                            id: {{ $notif->id }},
+                            title: {!! json_encode($notif->title) !!},
+                            message: {!! json_encode($notif->message) !!},
+                            device_name: {!! json_encode($notif->device_name) !!},
+                            registration_number: {!! json_encode($notif->registration_number) !!},
+                            hub: {!! json_encode($notif->hub) !!},
+                            hub_label: {!! json_encode($notif->hub_label) !!},
+                            hub_badge_class: {!! json_encode($notif->hub_badge_class) !!},
+                            source: {!! json_encode($notif->source) !!},
+                            is_read: {{ $notif->is_read ? 'true' : 'false' }},
+                            time_ago: {!! json_encode($notif->created_at ? $notif->created_at->diffForHumans() : '') !!},
+                            go_url: {!! json_encode(route('admin.notifications.go', $notif)) !!}
+                        },
+                        @endforeach
+                    @endif
+                ],
+                pollInterval: null,
+                init() {
+                    // Polling berkala setiap 30 detik untuk memeriksa penambahan perangkat oleh teknisi
+                    this.pollInterval = setInterval(() => {
+                        this.fetchLatest();
+                    }, 30000);
+                },
+                toggleMenu() {
+                    this.open = !this.open;
+                    if (this.open) {
+                        this.fetchLatest();
+                    }
+                },
+                fetchLatest() {
+                    fetch("{{ route('admin.notifications.poll') }}", {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data && typeof data.unread_count !== 'undefined') {
+                            this.unreadCount = data.unread_count;
+                            this.items = data.notifications || [];
+                        }
+                    })
+                    .catch(() => {});
+                },
+                markAllAsRead() {
+                    fetch("{{ route('admin.notifications.mark-all-read') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(() => {
+                        this.unreadCount = 0;
+                        this.items.forEach(item => item.is_read = true);
+                    })
+                    .catch(() => {});
+                }
+            };
+        }
+        @endif
     </script>
 
     @stack('scripts')

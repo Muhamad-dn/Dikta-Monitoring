@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeviceController as AdminDeviceController;
 use App\Http\Controllers\Admin\TechnicianController as AdminTechnicianController;
 use App\Http\Controllers\Admin\DeviceHistoryController as AdminDeviceHistoryController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Coordinator\DashboardController as CoordDashboardController;
 
 use App\Http\Controllers\Coordinator\WorkOrderController as CoordWorkOrderController;
@@ -67,6 +68,12 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
     // Audit Trail / History
     Route::get('/history', [AdminDeviceHistoryController::class, 'index'])->name('history.index');
+
+    // Admin Notifications
+    Route::get('/notifications/{notification}/go', [AdminNotificationController::class, 'go'])->name('notifications.go');
+    Route::post('/notifications/{notification}/read', [AdminNotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [AdminNotificationController::class, 'markAllRead'])->name('notifications.mark-all-read');
+    Route::get('/notifications/poll', [AdminNotificationController::class, 'poll'])->name('notifications.poll');
 
 });
 

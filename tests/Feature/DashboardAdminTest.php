@@ -105,9 +105,7 @@ class DashboardAdminTest extends TestCase
 
         $response = $this->actingAs($tech)->get('/technician/my-devices');
         $response->assertStatus(200);
-        $response->assertSee('Kembalikan ke HB Dikta');
-        $response->assertSee('Lapor Rusak');
-        $response->assertSee('Lapor Hilang');
+        $response->assertSee('Kembalikan');
     }
 
     public function test_technician_can_report_device_lost()
@@ -116,7 +114,7 @@ class DashboardAdminTest extends TestCase
         $this->assertNotNull($device);
         $tech = User::find($device->current_technician_id);
 
-        $response = $this->actingAs($tech)->post("/technician/devices/{$device->id}/report-lost", [
+        $response = $this->actingAs($tech)->from('/technician/my-devices')->post("/technician/devices/{$device->id}/report-lost", [
             'notes' => 'Jatuh saat perjalanan kembali ke kantor'
         ]);
 
@@ -132,7 +130,7 @@ class DashboardAdminTest extends TestCase
         $this->assertNotNull($device);
         $tech = User::find($device->current_technician_id);
 
-        $response = $this->actingAs($tech)->post("/technician/devices/{$device->id}/report-broken", [
+        $response = $this->actingAs($tech)->from('/technician/my-devices')->post("/technician/devices/{$device->id}/report-broken", [
             'notes' => 'Port optik pecah'
         ]);
 

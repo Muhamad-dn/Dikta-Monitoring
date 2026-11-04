@@ -121,6 +121,41 @@
         </div>
 
         <!-- Feedback Banner Scan Barcode Linier -->
+        @if(request('highlight'))
+            @php
+                $highlightedDev = $devicesInWarehouse->firstWhere('id', request('highlight'));
+            @endphp
+            @if($highlightedDev)
+                <div class="p-3.5 bg-gradient-to-r from-amber-500/15 via-emerald-500/10 to-transparent border-b border-amber-300/80 dark:border-amber-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                            🔔
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2 flex-wrap">
+                                <span>Unit dari Notifikasi Teknisi:</span>
+                                <span class="font-mono bg-white dark:bg-slate-900 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 font-bold">
+                                    {{ $highlightedDev->registration_number }}
+                                </span>
+                                <span class="text-slate-800 dark:text-slate-200">({{ $highlightedDev->name }})</span>
+                            </div>
+                            <div class="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
+                                Unit telah masuk ke <strong>{{ $highlightedDev->stock_status === 'tersedia_hb_ckr' ? 'Stok HB CKR' : 'Stok HB JKT' }}</strong> dan siap dialokasikan.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a href="{{ route('admin.devices.show', $highlightedDev) }}" class="px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded-lg border border-slate-300 dark:border-slate-700 shadow-xs transition-colors">
+                            Lihat Detail Lengkap &rarr;
+                        </a>
+                        <a href="{{ route('admin.devices.stock', array_filter(['hub' => request('hub')])) }}" class="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg" title="Tutup Highlight">
+                            ✕
+                        </a>
+                    </div>
+                </div>
+            @endif
+        @endif
+
         <div x-show="highlightedDeviceId" x-cloak class="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div class="flex items-center gap-2.5">
                 <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
@@ -174,13 +209,18 @@
                     @forelse($devicesInWarehouse as $dev)
                         <tr id="device-row-{{ $dev->id }}"
                             x-show="matchesSearch({{ $dev->id }})" 
-                            class="hover:bg-slate-50/80 transition-all duration-300"
+                            class="hover:bg-slate-50/80 transition-all duration-300 {{ request('highlight') == $dev->id ? 'bg-amber-50/80 dark:bg-amber-950/30 ring-2 ring-amber-400' : '' }}"
                             :class="highlightedDeviceId === {{ $dev->id }} ? 'bg-emerald-50/90 ring-2 ring-emerald-500 shadow-sm' : ''">
                             <td class="px-5 py-3.5 whitespace-nowrap">
-                                <div class="flex items-center gap-1.5">
-                                    <span class="font-mono font-bold text-slate-900 text-xs">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span class="font-mono font-bold text-slate-900 dark:text-white text-xs">
                                         {{ $dev->registration_number }}
                                     </span>
+                                    @if(request('highlight') == $dev->id)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-xs animate-pulse">
+                                            ✓ Unit Baru Ditambahkan
+                                        </span>
+                                    @endif
                                     <span x-show="highlightedDeviceId === {{ $dev->id }}" 
                                           class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white animate-pulse" 
                                           x-cloak>
