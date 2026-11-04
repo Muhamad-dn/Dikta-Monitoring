@@ -84,7 +84,8 @@ class Device extends Model
     public function getStockStatusLabelAttribute(): string
     {
         return match ($this->stock_status) {
-            'tersedia_pt', 'tersedia_hb_dikta' => 'Tersedia di HB Dikta',
+            'tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta' => 'Tersedia di HB JKT',
+            'tersedia_hb_ckr' => 'Tersedia di HB CKR',
             'dibawa_teknisi' => 'Dibawa Teknisi',
             'terpasang_pelanggan', 'terinstal' => 'Terinstal',
             'pending' => 'Pending',
@@ -144,7 +145,8 @@ class Device extends Model
     public function getStatusBadgeClassAttribute(): string
     {
         return match ($this->stock_status) {
-            'tersedia_pt', 'tersedia_hb_dikta' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            'tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+            'tersedia_hb_ckr' => 'bg-teal-100 text-teal-800 border-teal-200',
             'dibawa_teknisi' => 'bg-amber-100 text-amber-800 border-amber-200',
             'terpasang_pelanggan', 'terinstal' => 'bg-blue-100 text-blue-800 border-blue-200',
             'pending' => 'bg-orange-100 text-orange-800 border-orange-200',
@@ -153,6 +155,11 @@ class Device extends Model
             'dismantle' => 'bg-slate-100 text-slate-800 border-slate-200',
             default => 'bg-gray-100 text-gray-800 border-gray-200',
         };
+    }
+
+    public function isAvailableInWarehouse(): bool
+    {
+        return in_array($this->stock_status, ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta']);
     }
 
     public function getLinearBarcodeSvgAttribute(): string

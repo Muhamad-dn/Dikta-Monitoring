@@ -76,7 +76,7 @@ class DeviceExcelImportTest extends TestCase
             'registration_number' => 'HA9902',
             'serial_number' => 'SN-ZTE-9902',
             'brand' => 'ZTE',
-            'stock_status' => 'tersedia_pt',
+            'stock_status' => 'tersedia_hb_jkt',
         ]);
 
         @unlink($tmpFile);

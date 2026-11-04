@@ -2943,11 +2943,11 @@ class DeviceSpecificationAndStockSeeder extends Seeder
                     'name' => $d['name'],
                     'brand' => $d['brand'],
                     'type' => $d['type'],
-                    'stock_status' => 'tersedia_hb_dikta',
-                    'current_location' => 'Gudang HB Dikta',
+                    'stock_status' => 'tersedia_hb_jkt',
+                    'current_location' => 'Gudang HB JKT',
                     'condition' => 'baru',
                     'activity' => 'Spare Dikta',
-                    'notes' => 'Stok HB Dikta - Kode Spek: ' . $d['kode_spek'],
+                    'notes' => 'Stok HB JKT - Kode Spek: ' . $d['kode_spek'],
                 ]
             );
 
@@ -2955,12 +2955,12 @@ class DeviceSpecificationAndStockSeeder extends Seeder
                 DeviceHistory::create([
                     'device_id' => $device->id,
                     'actor_id' => $actorId,
-                    'action' => 'Registrasi Stok HB Dikta',
+                    'action' => 'Registrasi Stok HB JKT',
                     'previous_status' => null,
-                    'new_status' => 'tersedia_hb_dikta',
+                    'new_status' => 'tersedia_hb_jkt',
                     'from_location' => 'Data Awal Stok Gudang',
-                    'to_location' => 'Gudang HB Dikta',
-                    'notes' => 'Pendaftaran perangkat stok HB Dikta (Kode Spek: ' . $d['kode_spek'] . ')',
+                    'to_location' => 'Gudang HB JKT',
+                    'notes' => 'Pendaftaran perangkat stok HB JKT (Kode Spek: ' . $d['kode_spek'] . ')',
                 ]);
             }
         }

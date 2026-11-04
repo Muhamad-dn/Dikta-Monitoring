@@ -8,15 +8,19 @@
 <div class="space-y-6" x-data="stockAllocationApp()">
 
     <!-- Overview Cards -->
-    <!-- Overview Cards (7 Kolom Metrik) -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+    <!-- Overview Cards (8 Kolom Metrik) -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         <a href="{{ route('admin.dashboard', ['status' => 'all']) }}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs hover:border-slate-400 hover:shadow-md transition-all block group">
             <span class="text-[10px] font-bold uppercase text-slate-500 group-hover:underline">Total Stok &rarr;</span>
             <div class="text-xl font-black text-slate-900 mt-1">{{ $summary['total'] }}</div>
         </a>
-        <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_dikta']) }}" class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all block group">
-            <span class="text-[10px] font-bold uppercase text-emerald-700 group-hover:underline">HB Dikta &rarr;</span>
-            <div class="text-xl font-black text-emerald-600 mt-1">{{ $summary['tersedia_hb_dikta'] }}</div>
+        <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_jkt']) }}" class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs hover:border-emerald-400 hover:shadow-md transition-all block group">
+            <span class="text-[10px] font-bold uppercase text-emerald-700 group-hover:underline">HB JKT &rarr;</span>
+            <div class="text-xl font-black text-emerald-600 mt-1">{{ $summary['tersedia_hb_jkt'] }}</div>
+        </a>
+        <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_ckr']) }}" class="bg-white p-4 rounded-xl border border-teal-200 bg-teal-50/30 shadow-xs hover:border-teal-400 hover:shadow-md transition-all block group">
+            <span class="text-[10px] font-bold uppercase text-teal-700 group-hover:underline">HB CKR &rarr;</span>
+            <div class="text-xl font-black text-teal-600 mt-1">{{ $summary['tersedia_hb_ckr'] }}</div>
         </a>
         <a href="{{ route('admin.dashboard', ['status' => 'dibawa_teknisi']) }}" class="bg-white p-4 rounded-xl border border-amber-300 bg-amber-50/30 shadow-xs hover:border-amber-400 hover:shadow-md transition-all block group">
             <span class="text-[10px] font-bold uppercase text-amber-800 group-hover:underline">Dibawa Teknisi &rarr;</span>
@@ -40,11 +44,25 @@
         </a>
     </div>
 
-    <!-- Detail Unit Tersedia di Gudang HB Dikta -->
+    <!-- Detail Unit Tersedia di Gudang HB (JKT & CKR) -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-                <h3 class="text-sm font-bold text-slate-900">Daftar Unit Tersedia di Gudang HB Dikta</h3>
+            <div class="flex items-center gap-3">
+                <h3 class="text-sm font-bold text-slate-900">Daftar Unit Tersedia di Gudang HB</h3>
+                <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs font-semibold">
+                    <a href="{{ route('admin.devices.stock', array_filter(['search' => request('search')])) }}" 
+                       class="px-2.5 py-1 rounded-md transition-all {{ empty($hub) ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-900' }}">
+                        Semua ({{ $summary['tersedia_hb_jkt'] + $summary['tersedia_hb_ckr'] }})
+                    </a>
+                    <a href="{{ route('admin.devices.stock', array_filter(['hub' => 'hb_jkt', 'search' => request('search')])) }}" 
+                       class="px-2.5 py-1 rounded-md transition-all {{ $hub === 'hb_jkt' ? 'bg-emerald-600 text-white shadow-xs font-bold' : 'text-emerald-700 hover:text-emerald-900' }}">
+                        HB JKT ({{ $summary['tersedia_hb_jkt'] }})
+                    </a>
+                    <a href="{{ route('admin.devices.stock', array_filter(['hub' => 'hb_ckr', 'search' => request('search')])) }}" 
+                       class="px-2.5 py-1 rounded-md transition-all {{ $hub === 'hb_ckr' ? 'bg-teal-600 text-white shadow-xs font-bold' : 'text-teal-700 hover:text-teal-900' }}">
+                        HB CKR ({{ $summary['tersedia_hb_ckr'] }})
+                    </a>
+                </div>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
                 <button type="button" onclick="openImportExcelModal()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg shadow-xs transition-colors cursor-pointer">
@@ -67,7 +85,7 @@
                     <input type="text" 
                            name="search" 
                            x-model="searchQuery" 
-                           placeholder="Cari dengan No. Registrasi / Kode Spek / Nojar / Nama" 
+                           placeholder="Cari dengan No.registrasi / Nojar / Kode Spek / Nama" 
                            class="w-full pl-9 pr-24 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs placeholder-slate-400 font-medium">
                     <div class="absolute inset-y-0 right-0 pr-1.5 flex items-center gap-1">
                         <button type="button" 
@@ -115,7 +133,7 @@
                         <span class="text-emerald-800" x-text="'(' + (scannedDevice?.name || '') + ')'"></span>
                     </div>
                     <div class="flex items-center gap-2 mt-0.5 text-[11px] text-emerald-700">
-                        <span>Perangkat tersedia di Gudang HB Dikta dan siap dialokasikan ke teknisi.</span>
+                        <span>Perangkat tersedia di Gudang HB dan siap dialokasikan ke teknisi.</span>
                         <span x-show="rawScannedCode && rawScannedCode !== scannedCode" class="font-mono text-slate-500 bg-white/70 px-1.5 py-0.5 rounded border border-emerald-200 text-[10px]" x-text="'(Barcode Fisik: ' + rawScannedCode + ')'"></span>
                     </div>
                 </div>
@@ -199,7 +217,7 @@
                     @empty
                         <tr>
                             <td colspan="4" class="px-6 py-6 text-center text-slate-400">
-                                Tidak ada perangkat berstatus tersedia di gudang HB Dikta.
+                                Tidak ada perangkat berstatus tersedia di gudang HB.
                             </td>
                         </tr>
                     @endforelse
@@ -437,7 +455,7 @@
                         <div class="flex items-center gap-2">
                             <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold shadow-xs">✓</span>
                             <div>
-                                <span class="text-xs font-bold text-emerald-300 uppercase tracking-wide">Unit Tersedia di Gudang HB Dikta!</span>
+                                <span class="text-xs font-bold text-emerald-300 uppercase tracking-wide">Unit Tersedia di Gudang HB!</span>
                                 <div x-show="rawScannedCode && rawScannedCode !== scannedCode" class="text-[10px] text-slate-400 font-mono mt-0.5">
                                     Barcode Fisik: <span class="text-slate-300" x-text="rawScannedCode"></span> &bull; Terbaca: <span class="text-emerald-300 font-bold" x-text="scannedCode"></span>
                                 </div>
@@ -491,7 +509,7 @@
                         <div class="flex items-center gap-2">
                             <span class="w-6 h-6 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-bold">!</span>
                             <div>
-                                <span class="text-xs font-bold text-amber-300 uppercase tracking-wide">Unit Tidak Berada di Gudang HB Dikta</span>
+                                <span class="text-xs font-bold text-amber-300 uppercase tracking-wide">Unit Tidak Berada di Gudang HB</span>
                                 <div x-show="rawScannedCode && rawScannedCode !== scannedCode" class="text-[10px] text-amber-300/80 font-mono mt-0.5">
                                     Barcode Fisik: <span x-text="rawScannedCode"></span> &bull; Terbaca: <span class="font-bold" x-text="scannedCode"></span>
                                 </div>

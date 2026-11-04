@@ -96,7 +96,7 @@ class DeviceRegistrationFormTest extends TestCase
         $this->assertEquals('PT Pelanggan Sejahtera', $device->customer_name);
         $this->assertEquals('Jl. Boulevard No. 45, Jakarta Selatan', $device->address);
         $this->assertEquals('PSB', $device->activity);
-        $this->assertEquals('tersedia_pt', $device->stock_status);
+        $this->assertEquals('tersedia_hb_jkt', $device->stock_status);
         $this->assertNull($device->current_technician_id);
 
         // Verify WorkOrder is automatically linked
@@ -191,8 +191,8 @@ class DeviceRegistrationFormTest extends TestCase
         $this->assertNull($device->nojar);
         $this->assertNull($device->customer_name);
         $this->assertNull($device->address);
-        $this->assertEquals('tersedia_pt', $device->stock_status);
-        $this->assertEquals('Gudang HB Dikta (Stok Spare)', $device->current_location);
+        $this->assertEquals('tersedia_hb_jkt', $device->stock_status);
+        $this->assertEquals('Gudang HB JKT (Stok Spare)', $device->current_location);
 
         // Tidak boleh ada WorkOrder yang dibuat / dikaitkan dengan perangkat Spare Dikta
         $this->assertEquals(0, WorkOrder::where('device_id', $device->id)->count());

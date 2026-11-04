@@ -364,7 +364,7 @@ class SimpleExcelService
                 'Bank Mandiri Cabang Utama',
                 'Jl. Jendral Sudirman No. 45',
                 'Spare Dikta',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB JKT',
                 'baru',
                 'Perangkat cadangan operasional'
             ],
@@ -380,7 +380,7 @@ class SimpleExcelService
                 'PT Telkom Akses',
                 'Jl. Gatot Subroto Kav. 12',
                 'PSB',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB CKR',
                 'baru',
                 'Siap pasang proyek baru'
             ],
@@ -396,7 +396,7 @@ class SimpleExcelService
                 'Kantor BPN Serang',
                 'Jl. Ahmad Yani No. 10',
                 'Troubleshoot',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB JKT',
                 'bekas_bagus',
                 'Hasil dismantle tes normal'
             ]
@@ -459,7 +459,7 @@ class SimpleExcelService
                 'Bank Mandiri Cabang Utama',
                 'Jl. Jendral Sudirman No. 45',
                 'Spare Dikta',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB JKT',
                 'baru',
                 'Perangkat cadangan operasional'
             ],
@@ -475,7 +475,7 @@ class SimpleExcelService
                 'PT Telkom Akses',
                 'Jl. Gatot Subroto Kav. 12',
                 'PSB',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB CKR',
                 'baru',
                 'Siap pasang proyek baru'
             ],
@@ -491,7 +491,7 @@ class SimpleExcelService
                 'Kantor BPN Serang',
                 'Jl. Ahmad Yani No. 10',
                 'Troubleshoot',
-                'Tersedia di HB Dikta',
+                'Tersedia di HB JKT',
                 'bekas_bagus',
                 'Hasil dismantle tes normal'
             ]

@@ -265,13 +265,36 @@
 
                 <select name="technician_id" id="technician_id" x-model="selectedTechnician"
                         class="w-full px-4 py-2.5 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-slate-800 font-medium">
-                    <option value="">-- Tetap Tersimpan di HB Dikta (Tidak Dibawa Teknisi) --</option>
+                    <option value="">-- Tetap Tersimpan di Gudang HB (Tidak Dibawa Teknisi) --</option>
                     @foreach($technicians as $tech)
                         <option value="{{ $tech->id }}" {{ old('technician_id') == $tech->id ? 'selected' : '' }}>
                             {{ $tech->name }} {{ $tech->phone ? '('.$tech->phone.')' : '' }}
                         </option>
                     @endforeach
                 </select>
+            </div>
+
+            <!-- Pilihan Lokasi Gudang HB (Jika Tidak Dibawa Teknisi) -->
+            <div x-show="!selectedTechnician" class="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/80">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-800 mb-2">
+                    Lokasi Gudang Penyimpanan
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label class="p-3 rounded-xl border-2 cursor-pointer flex items-center gap-2.5 transition-all has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50 has-[:checked]:shadow-xs bg-white">
+                        <input type="radio" name="warehouse_hub" value="hb_jkt" checked class="text-emerald-600 focus:ring-emerald-500">
+                        <div>
+                            <div class="font-bold text-xs text-slate-900">Gudang HB JKT</div>
+                            <div class="text-[10px] text-slate-500">Tersedia di Homebase Jakarta</div>
+                        </div>
+                    </label>
+                    <label class="p-3 rounded-xl border-2 cursor-pointer flex items-center gap-2.5 transition-all has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50 has-[:checked]:shadow-xs bg-white">
+                        <input type="radio" name="warehouse_hub" value="hb_ckr" class="text-teal-600 focus:ring-teal-500">
+                        <div>
+                            <div class="font-bold text-xs text-slate-900">Gudang HB CKR</div>
+                            <div class="text-[10px] text-slate-500">Tersedia di Homebase Cikarang</div>
+                        </div>
+                    </label>
+                </div>
             </div>
 
             <!-- Catatan Tambahan -->

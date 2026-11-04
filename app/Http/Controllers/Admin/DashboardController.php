@@ -14,8 +14,10 @@ class DashboardController extends Controller
     {
         $stats = [
             'total_devices' => Device::count(),
-            'devices_at_hb_dikta' => Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'devices_at_pt' => Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'devices_at_hb_jkt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'devices_at_hb_ckr' => Device::where('stock_status', 'tersedia_hb_ckr')->count(),
+            'devices_at_hb_dikta' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'devices_at_pt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
             'devices_with_tech' => Device::where('stock_status', 'dibawa_teknisi')->count(),
             'devices_installed' => Device::whereIn('stock_status', ['terpasang_pelanggan', 'terinstal'])->count(),
             'devices_pending' => Device::where('stock_status', 'pending')->count(),
@@ -36,8 +38,12 @@ class DashboardController extends Controller
         }]);
 
         switch ($statusFilter) {
+            case 'tersedia_hb_jkt':
             case 'tersedia_hb_dikta':
-                $query->whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta']);
+                $query->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']);
+                break;
+            case 'tersedia_hb_ckr':
+                $query->where('stock_status', 'tersedia_hb_ckr');
                 break;
             case 'dibawa_teknisi':
                 $query->where('stock_status', 'dibawa_teknisi');
@@ -88,7 +94,9 @@ class DashboardController extends Controller
             ->get();
 
         $stockRecap = Device::selectRaw('type, count(*) as total, 
-            sum(case when stock_status in ("tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia, 
+            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_jkt, 
+            sum(case when stock_status = "tersedia_hb_ckr" then 1 else 0 end) as tersedia_ckr, 
+            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_hb_ckr", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia, 
             sum(case when stock_status = "dibawa_teknisi" then 1 else 0 end) as di_lapangan,
             sum(case when stock_status in ("terpasang_pelanggan", "terinstal") then 1 else 0 end) as terinstal,
             sum(case when stock_status = "pending" then 1 else 0 end) as pending,

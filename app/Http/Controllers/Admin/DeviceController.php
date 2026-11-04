@@ -34,7 +34,11 @@ class DeviceController extends Controller
         }
 
         if ($request->filled('stock_status')) {
-            $query->where('stock_status', $request->stock_status);
+            if (in_array($request->stock_status, ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])) {
+                $query->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']);
+            } else {
+                $query->where('stock_status', $request->stock_status);
+            }
         }
 
         if ($request->filled('type')) {
@@ -211,7 +215,7 @@ class DeviceController extends Controller
             'area' => $device->area,
             'stock_status' => $device->stock_status,
             'stock_status_label' => $device->stock_status_label,
-            'is_in_warehouse' => in_array($device->stock_status, ['tersedia_pt', 'tersedia_hb_dikta']),
+            'is_in_warehouse' => in_array($device->stock_status, ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta']),
             'current_location' => $device->current_location,
             'current_technician_id' => $device->current_technician_id,
             'current_technician_name' => $device->currentTechnician?->name,
@@ -307,13 +311,20 @@ class DeviceController extends Controller
                 $updateData['current_location'] = 'Dibawa oleh Teknisi ' . $technician->name;
             } else {
                 $updateData['current_technician_id'] = null;
-                $updateData['stock_status'] = 'tersedia_pt';
+                $targetHub = $request->input('warehouse_hub', 'hb_jkt');
+                if ($targetHub === 'hb_ckr' || $request->input('stock_status') === 'tersedia_hb_ckr') {
+                    $updateData['stock_status'] = 'tersedia_hb_ckr';
+                    $hubName = 'Gudang HB CKR';
+                } else {
+                    $updateData['stock_status'] = 'tersedia_hb_jkt';
+                    $hubName = 'Gudang HB JKT';
+                }
                 if ($validated['activity'] === 'Spare Dikta') {
-                    $updateData['current_location'] = 'Gudang HB Dikta (Stok Spare)';
+                    $updateData['current_location'] = $hubName . ' (Stok Spare)';
                 } else {
                     $updateData['current_location'] = !empty($validated['address']) 
-                        ? 'Gudang HB Dikta (Alokasi: ' . $validated['address'] . ')' 
-                        : 'Gudang HB Dikta';
+                        ? $hubName . ' (Alokasi: ' . $validated['address'] . ')' 
+                        : $hubName;
                 }
             }
 
@@ -413,13 +424,20 @@ class DeviceController extends Controller
             $validated['current_location'] = 'Dibawa oleh Teknisi ' . $technician->name;
         } else {
             $validated['current_technician_id'] = null;
-            $validated['stock_status'] = 'tersedia_pt';
+            $targetHub = $request->input('warehouse_hub', 'hb_jkt');
+            if ($targetHub === 'hb_ckr' || $request->input('stock_status') === 'tersedia_hb_ckr') {
+                $validated['stock_status'] = 'tersedia_hb_ckr';
+                $hubName = 'Gudang HB CKR';
+            } else {
+                $validated['stock_status'] = 'tersedia_hb_jkt';
+                $hubName = 'Gudang HB JKT';
+            }
             if ($validated['activity'] === 'Spare Dikta') {
-                $validated['current_location'] = 'Gudang HB Dikta (Stok Spare)';
+                $validated['current_location'] = $hubName . ' (Stok Spare)';
             } else {
                 $validated['current_location'] = !empty($validated['address']) 
-                    ? 'Gudang HB Dikta (Alokasi: ' . $validated['address'] . ')' 
-                    : 'Gudang HB Dikta';
+                    ? $hubName . ' (Alokasi: ' . $validated['address'] . ')' 
+                    : $hubName;
             }
         }
 
@@ -509,7 +527,7 @@ class DeviceController extends Controller
             'address' => 'nullable|string|max:500',
             'activity' => 'nullable|in:Survey,PSB,Troubleshoot,Simulasi,Spare Dikta',
             'current_technician_id' => 'nullable|exists:users,id',
-            'stock_status' => 'required|in:tersedia_pt,tersedia_hb_dikta,dibawa_teknisi,terpasang_pelanggan,terinstal,pending,rusak,hilang,dismantle',
+            'stock_status' => 'required|in:tersedia_hb_jkt,tersedia_hb_ckr,tersedia_pt,tersedia_hb_dikta,dibawa_teknisi,terpasang_pelanggan,terinstal,pending,rusak,hilang,dismantle',
             'condition' => 'required|in:baru,bekas_bagus,rusak',
             'current_location' => 'required|string|max:200',
             'notes' => 'nullable|string',
@@ -517,7 +535,14 @@ class DeviceController extends Controller
             'returned_to_lintasarta' => 'nullable|string|in:Gudang Tekno,BWA,BDA,SEOA,SAST,CDA,NEA',
         ]);
 
-        if ($validated['stock_status'] !== 'dibawa_teknisi') {
+        if (in_array($validated['stock_status'], ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta'])) {
+            $validated['current_technician_id'] = null;
+            if ($validated['stock_status'] === 'tersedia_hb_ckr' && (empty($validated['current_location']) || str_contains($validated['current_location'], 'Gudang HB'))) {
+                $validated['current_location'] = 'Gudang HB CKR';
+            } elseif (in_array($validated['stock_status'], ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']) && (empty($validated['current_location']) || str_contains($validated['current_location'], 'Gudang HB'))) {
+                $validated['current_location'] = 'Gudang HB JKT';
+            }
+        } elseif ($validated['stock_status'] !== 'dibawa_teknisi') {
             $validated['current_technician_id'] = null;
         } elseif (!empty($validated['current_technician_id'])) {
             $tech = User::find($validated['current_technician_id']);
@@ -609,7 +634,11 @@ class DeviceController extends Controller
         }
 
         if ($request->filled('stock_status')) {
-            $query->where('stock_status', $request->stock_status);
+            if (in_array($request->stock_status, ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])) {
+                $query->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']);
+            } else {
+                $query->where('stock_status', $request->stock_status);
+            }
         }
 
         $devices = $query->paginate(15)->withQueryString();
@@ -732,8 +761,10 @@ class DeviceController extends Controller
     {
         $summary = [
             'total' => Device::count(),
-            'tersedia_pt' => Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'tersedia_hb_dikta' => Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'tersedia_hb_jkt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'tersedia_hb_ckr' => Device::where('stock_status', 'tersedia_hb_ckr')->count(),
+            'tersedia_pt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
+            'tersedia_hb_dikta' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
             'dibawa_teknisi' => Device::where('stock_status', 'dibawa_teknisi')->count(),
             'terpasang_pelanggan' => Device::whereIn('stock_status', ['terpasang_pelanggan', 'terinstal'])->count(),
             'pending' => Device::where('stock_status', 'pending')->count(),
@@ -744,7 +775,9 @@ class DeviceController extends Controller
 
         $stockByType = Device::selectRaw('type, 
             count(*) as total, 
-            sum(case when stock_status in ("tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_pt,
+            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_jkt,
+            sum(case when stock_status = "tersedia_hb_ckr" then 1 else 0 end) as tersedia_ckr,
+            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_hb_ckr", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_pt,
             sum(case when stock_status = "dibawa_teknisi" then 1 else 0 end) as dibawa_teknisi,
             sum(case when stock_status in ("terpasang_pelanggan", "terinstal") then 1 else 0 end) as terpasang_pelanggan,
             sum(case when stock_status = "pending" then 1 else 0 end) as pending,
@@ -755,8 +788,14 @@ class DeviceController extends Controller
             ->get();
 
         $search = $request->query('search');
+        $hub = $request->query('hub');
 
-        $warehouseQuery = Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta']);
+        $warehouseQuery = Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta']);
+        if ($hub === 'hb_jkt') {
+            $warehouseQuery->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']);
+        } elseif ($hub === 'hb_ckr') {
+            $warehouseQuery->where('stock_status', 'tersedia_hb_ckr');
+        }
         if (!empty($search)) {
             $searchCandidates = [$search];
             if (preg_match('/([A-Za-z]{1,3}\d{3,6})$/', $search, $m)) {
@@ -797,7 +836,9 @@ class DeviceController extends Controller
                 'address' => $d->address ?? '',
                 'nojar' => $d->nojar ?? '',
                 'activity' => $d->activity ?? 'PSB',
-                'current_location' => $d->current_location ?? 'Gudang HB Dikta',
+                'current_location' => $d->current_location ?? ($d->stock_status === 'tersedia_hb_ckr' ? 'Gudang HB CKR' : 'Gudang HB JKT'),
+                'stock_status' => $d->stock_status,
+                'stock_status_label' => $d->stock_status_label,
                 'searchStr' => strtolower(($d->kode_spek ?? '') . ' ' . $d->registration_number . ' ' . $d->serial_number . ' ' . $d->name . ' ' . $d->brand . ' ' . ($d->area ?? '') . ' ' . ($d->customer_name ?? '') . ' ' . ($d->address ?? '') . ' ' . ($d->nojar ?? ''))
             ];
         })->values();
@@ -805,7 +846,7 @@ class DeviceController extends Controller
         $devicesInField = Device::with(['currentTechnician', 'activeWorkOrder'])->where('stock_status', 'dibawa_teknisi')->latest()->get();
         $technicians = User::where('role', 'teknisi')->orderBy('name')->get();
 
-        return view('admin.devices.stock', compact('summary', 'stockByType', 'devicesInWarehouse', 'devicesInWarehouseData', 'devicesInField', 'technicians', 'search'));
+        return view('admin.devices.stock', compact('summary', 'stockByType', 'devicesInWarehouse', 'devicesInWarehouseData', 'devicesInField', 'technicians', 'search', 'hub'));
     }
 
     public function allocateToTechnician(Request $request, Device $device)
@@ -851,6 +892,9 @@ class DeviceController extends Controller
 
         // Jika ada nojar, buat atau update WorkOrder
         $nojar = $device->nojar;
+        $hubName = ($previousStatus === 'tersedia_hb_ckr' || str_contains($previousLocation ?? '', 'CKR')) ? 'HB CKR' : 'HB JKT';
+        $hubLocation = ($hubName === 'HB CKR') ? 'Gudang HB CKR' : 'Gudang HB JKT';
+
         if (!empty($nojar)) {
             $activity = $device->activity ?? 'PSB';
             $categoryMap = [
@@ -873,7 +917,7 @@ class DeviceController extends Controller
                     'technician_id' => $technician->id,
                     'device_id' => $device->id,
                     'status' => 'sedang_dikerjakan',
-                    'status_notes' => 'Alokasi langsung dari stok HB Dikta ke teknisi ' . $technician->name . '. ' . ($validated['notes'] ?? ''),
+                    'status_notes' => 'Alokasi langsung dari stok ' . $hubName . ' ke teknisi ' . $technician->name . '. ' . ($validated['notes'] ?? ''),
                 ]
             );
         }
@@ -883,12 +927,12 @@ class DeviceController extends Controller
             'device_id' => $device->id,
             'actor_id' => auth()->id(),
             'technician_id' => $technician->id,
-            'action' => 'Alokasi Stok HB Dikta ke Teknisi',
+            'action' => 'Alokasi Stok ' . $hubName . ' ke Teknisi',
             'previous_status' => $previousStatus,
             'new_status' => 'dibawa_teknisi',
-            'from_location' => $previousLocation ?: 'Gudang HB Dikta',
+            'from_location' => $previousLocation ?: $hubLocation,
             'to_location' => 'Dibawa oleh Teknisi ' . $technician->name,
-            'notes' => 'Alokasi langsung dari stok HB Dikta kepada teknisi ' . $technician->name . 
+            'notes' => 'Alokasi langsung dari stok ' . $hubName . ' kepada teknisi ' . $technician->name . 
                        ($nojar ? ' [NOJAR: ' . $nojar . ']' : '') . 
                        ($device->customer_name ? ' [Pelanggan: ' . $device->customer_name . ']' : '') . 
                        ($device->address ? ' [Alamat: ' . $device->address . ']' : '') . 
@@ -1123,7 +1167,13 @@ class DeviceController extends Controller
 
             // Normalisasi status stok
             $rawStatus = strtolower(trim((string)($row['stock_status'] ?? '')));
-            $stockStatus = 'tersedia_pt';
+            if (str_contains($rawStatus, 'ckr') || str_contains($rawStatus, 'cikarang')) {
+                $stockStatus = 'tersedia_hb_ckr';
+                $defaultHubLocation = 'Gudang HB CKR';
+            } else {
+                $stockStatus = 'tersedia_hb_jkt';
+                $defaultHubLocation = 'Gudang HB JKT';
+            }
             if (str_contains($rawStatus, 'teknisi')) {
                 $stockStatus = 'dibawa_teknisi';
             } elseif (str_contains($rawStatus, 'terinstal') || str_contains($rawStatus, 'terpasang')) {
@@ -1147,13 +1197,13 @@ class DeviceController extends Controller
                 $condition = 'rusak';
             }
 
-            $currentLocation = 'Gudang HB Dikta';
+            $currentLocation = $defaultHubLocation;
             if ($stockStatus === 'dibawa_teknisi') {
                 $currentLocation = 'Dibawa Teknisi';
             } elseif ($stockStatus === 'terpasang_pelanggan' && $address) {
                 $currentLocation = 'Lokasi Pelanggan: ' . $address;
             } elseif ($normalizedActivity === 'Spare Dikta') {
-                $currentLocation = 'Gudang HB Dikta (Stok Spare)';
+                $currentLocation = $defaultHubLocation . ' (Stok Spare)';
             }
 
             // Upsert Device

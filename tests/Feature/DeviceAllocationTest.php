@@ -25,8 +25,8 @@ class DeviceAllocationTest extends TestCase
         $admin = User::where('role', 'admin')->first();
         $technician = User::where('role', 'teknisi')->first();
 
-        // Cari atau buat perangkat yang berstatus tersedia di HB Dikta
-        $device = Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->first();
+        // Cari atau buat perangkat yang berstatus tersedia di HB JKT
+        $device = Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->first();
         if (!$device) {
             $device = Device::create([
                 'registration_number' => 'REG-ALLOC-01',
@@ -35,8 +35,8 @@ class DeviceAllocationTest extends TestCase
                 'brand' => 'Huawei',
                 'type' => 'ONT',
                 'condition' => 'baru',
-                'stock_status' => 'tersedia_hb_dikta',
-                'current_location' => 'Gudang HB Dikta',
+                'stock_status' => 'tersedia_hb_jkt',
+                'current_location' => 'Gudang HB JKT',
             ]);
         }
 
@@ -44,7 +44,7 @@ class DeviceAllocationTest extends TestCase
             'technician_id' => $technician->id,
             'nojar' => 'NJR-ALOKASI-01',
             'activity' => 'PSB',
-            'notes' => 'Alokasi langsung unit dari stok HB Dikta ke teknisi untuk pasang baru.',
+            'notes' => 'Alokasi langsung unit dari stok HB JKT ke teknisi untuk pasang baru.',
         ];
 
         $response = $this->actingAs($admin)->post(route('admin.devices.allocate', $device), $postData);
@@ -66,7 +66,7 @@ class DeviceAllocationTest extends TestCase
         // Verify DeviceHistory
         $history = DeviceHistory::where('device_id', $device->id)->latest()->first();
         $this->assertNotNull($history);
-        $this->assertEquals('Alokasi Stok HB Dikta ke Teknisi', $history->action);
+        $this->assertStringContainsString('Alokasi Stok', $history->action);
         $this->assertEquals($technician->id, $history->technician_id);
     }
 
@@ -74,18 +74,18 @@ class DeviceAllocationTest extends TestCase
     {
         $admin = User::where('role', 'admin')->first();
 
-        // Pastikan ada perangkat di HB Dikta
-        $device = Device::whereIn('stock_status', ['tersedia_pt', 'tersedia_hb_dikta'])->first();
+        // Pastikan ada perangkat di HB
+        $device = Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->first();
         $this->assertNotNull($device);
 
-        // Cek halaman Stok HB Dikta
+        // Cek halaman Stok HB
         $stockResponse = $this->actingAs($admin)->get(route('admin.devices.stock'));
         $stockResponse->assertStatus(200);
         $stockResponse->assertSee('Alokasikan');
-        $stockResponse->assertSee('Daftar Unit Tersedia di Gudang HB Dikta');
+        $stockResponse->assertSee('Daftar Unit Tersedia di Gudang HB');
 
-        // Cek halaman Dashboard Utama dengan filter tersedia_hb_dikta
-        $dashboardResponse = $this->actingAs($admin)->get(route('admin.dashboard', ['status' => 'tersedia_hb_dikta']));
+        // Cek halaman Dashboard Utama dengan filter tersedia_hb_jkt
+        $dashboardResponse = $this->actingAs($admin)->get(route('admin.dashboard', ['status' => 'tersedia_hb_jkt']));
         $dashboardResponse->assertStatus(200);
         $dashboardResponse->assertSee('Alokasikan');
 

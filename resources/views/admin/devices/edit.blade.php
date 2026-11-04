@@ -86,7 +86,8 @@
                         Status Stok <span class="text-rose-500">*</span>
                     </label>
                     <select name="stock_status" id="stock_status" required class="w-full px-4 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
-                        <option value="tersedia_pt" {{ in_array(old('stock_status', $device->stock_status), ['tersedia_pt', 'tersedia_hb_dikta']) ? 'selected' : '' }}>Tersedia di HB Dikta</option>
+                        <option value="tersedia_hb_jkt" {{ in_array(old('stock_status', $device->stock_status), ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']) ? 'selected' : '' }}>Tersedia di HB JKT</option>
+                        <option value="tersedia_hb_ckr" {{ old('stock_status', $device->stock_status) === 'tersedia_hb_ckr' ? 'selected' : '' }}>Tersedia di HB CKR</option>
                         <option value="dibawa_teknisi" {{ old('stock_status', $device->stock_status) == 'dibawa_teknisi' ? 'selected' : '' }}>Dibawa Teknisi</option>
                         <option value="terpasang_pelanggan" {{ in_array(old('stock_status', $device->stock_status), ['terpasang_pelanggan', 'terinstal']) ? 'selected' : '' }}>Terinstal</option>
                         <option value="pending" {{ old('stock_status', $device->stock_status) == 'pending' ? 'selected' : '' }}>Pending</option>

@@ -107,7 +107,7 @@
                                     <!-- 2. Tombol KEMBALIKAN (Seperti di Admin) -->
                                     <button type="button" 
                                             @click="openReturnModal({{ json_encode($dev) }})"
-                                            title="Kembalikan perangkat (Gudang HB Dikta / Lintasarta)"
+                                            title="Kembalikan perangkat (Gudang HB / Lintasarta)"
                                             class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-colors flex items-center gap-1 shadow-xs">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
                                         <span>Kembalikan</span>
@@ -203,7 +203,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-extrabold text-slate-900">Kembalikan Perangkat</h3>
-                    <p class="text-xs text-slate-500">Kembalikan ke Gudang HB Dikta atau Lintasarta</p>
+                    <p class="text-xs text-slate-500">Kembalikan ke HB Dikta / Gudang HB (JKT / CKR) atau Lintasarta</p>
                 </div>
             </div>
 
@@ -225,7 +225,8 @@
                     </label>
                     <select name="destination" id="page_return_destination" required 
                             class="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-semibold text-slate-800">
-                        <option value="Gudang HB Dikta">Gudang HB Dikta (Gudang Utama PT Dikta)</option>
+                        <option value="Gudang HB JKT">Gudang HB JKT (Homebase Jakarta)</option>
+                        <option value="Gudang HB CKR">Gudang HB CKR (Homebase Cikarang)</option>
                         <option value="Gudang Tekno">Lintasarta - Gudang Tekno (Gudang Utama)</option>
                         <option value="BWA">Lintasarta - Area BWA</option>
                         <option value="BDA">Lintasarta - Area BDA</option>

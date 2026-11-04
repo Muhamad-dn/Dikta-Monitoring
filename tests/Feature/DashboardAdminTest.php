@@ -19,7 +19,7 @@ class DashboardAdminTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_admin_dashboard_displays_all_7_columns()
+    public function test_admin_dashboard_displays_all_8_columns()
     {
         $admin = User::where('role', 'admin')->first();
         $this->assertNotNull($admin, 'Admin user must exist');
@@ -28,7 +28,8 @@ class DashboardAdminTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Total Semua Perangkat');
-        $response->assertSee('Tersedia di HB Dikta');
+        $response->assertSee('Tersedia di HB JKT');
+        $response->assertSee('Tersedia di HB CKR');
         $response->assertSee('Dibawa Teknisi');
         $response->assertSee('Terinstal');
         $response->assertSee('Pending');
@@ -40,11 +41,12 @@ class DashboardAdminTest extends TestCase
     {
         $admin = User::where('role', 'admin')->first();
 
-        // Verifikasi bahwa seluruh 7 kartu metrik berwujud link yang dapat diklik
+        // Verifikasi bahwa seluruh 8 kartu metrik berwujud link yang dapat diklik
         $dashboard = $this->actingAs($admin)->get('/admin/dashboard');
         $dashboard->assertStatus(200);
         $dashboard->assertSee('status=all');
-        $dashboard->assertSee('status=tersedia_hb_dikta');
+        $dashboard->assertSee('status=tersedia_hb_jkt');
+        $dashboard->assertSee('status=tersedia_hb_ckr');
         $dashboard->assertSee('status=dibawa_teknisi');
         $dashboard->assertSee('status=terinstal');
         $dashboard->assertSee('status=pending');
@@ -52,7 +54,7 @@ class DashboardAdminTest extends TestCase
         $dashboard->assertSee('status=hilang');
 
         // Verifikasi setiap filter status dapat diakses dan menampilkan data
-        foreach (['all', 'tersedia_hb_dikta', 'dibawa_teknisi', 'terinstal', 'pending', 'rusak', 'hilang'] as $status) {
+        foreach (['all', 'tersedia_hb_jkt', 'tersedia_hb_ckr', 'dibawa_teknisi', 'terinstal', 'pending', 'rusak', 'hilang'] as $status) {
             $response = $this->actingAs($admin)->get('/admin/dashboard?status=' . $status);
             $response->assertStatus(200);
         }

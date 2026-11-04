@@ -385,12 +385,12 @@ class TaskController extends Controller
         }
 
         $request->validate([
-            'destination' => 'nullable|string|in:Gudang HB Dikta,Gudang Tekno,BWA,BDA,SEOA,SAST,CDA,NEA',
+            'destination' => 'nullable|string|in:Gudang HB JKT,Gudang HB CKR,Gudang HB Dikta,Gudang Tekno,BWA,BDA,SEOA,SAST,CDA,NEA',
             'condition' => 'required|in:baru,bekas_bagus,rusak',
             'return_notes' => 'nullable|string|max:500',
         ]);
 
-        $destination = $request->input('destination', 'Gudang HB Dikta');
+        $destination = $request->input('destination', 'Gudang HB JKT');
         $oldStatus = $device->stock_status;
         $oldLocation = $device->current_location;
 
@@ -414,6 +414,46 @@ class TaskController extends Controller
             ]);
 
             return back()->with('success', "Perangkat {$device->registration_number} telah berhasil dikembalikan ke Gudang HB Dikta.");
+        } elseif ($destination === 'Gudang HB JKT') {
+            $device->stock_status = ($request->condition === 'rusak') ? 'rusak' : 'tersedia_hb_jkt';
+            $device->condition = $request->condition;
+            $device->current_technician_id = null;
+            $device->current_location = 'Gudang HB JKT';
+            $device->save();
+
+            DeviceHistory::create([
+                'device_id' => $device->id,
+                'technician_id' => auth()->id(),
+                'actor_id' => auth()->id(),
+                'action' => 'Pengembalian Perangkat ke HB JKT',
+                'previous_status' => $oldStatus,
+                'new_status' => $device->stock_status,
+                'from_location' => $oldLocation,
+                'to_location' => 'Gudang HB JKT',
+                'notes' => 'Dikembalikan oleh teknisi ' . auth()->user()->name . '. ' . ($request->return_notes ? "Catatan: {$request->return_notes}" : ''),
+            ]);
+
+            return back()->with('success', "Perangkat {$device->registration_number} telah berhasil dikembalikan ke Gudang HB JKT.");
+        } elseif ($destination === 'Gudang HB CKR') {
+            $device->stock_status = ($request->condition === 'rusak') ? 'rusak' : 'tersedia_hb_ckr';
+            $device->condition = $request->condition;
+            $device->current_technician_id = null;
+            $device->current_location = 'Gudang HB CKR';
+            $device->save();
+
+            DeviceHistory::create([
+                'device_id' => $device->id,
+                'technician_id' => auth()->id(),
+                'actor_id' => auth()->id(),
+                'action' => 'Pengembalian Perangkat ke HB CKR',
+                'previous_status' => $oldStatus,
+                'new_status' => $device->stock_status,
+                'from_location' => $oldLocation,
+                'to_location' => 'Gudang HB CKR',
+                'notes' => 'Dikembalikan oleh teknisi ' . auth()->user()->name . '. ' . ($request->return_notes ? "Catatan: {$request->return_notes}" : ''),
+            ]);
+
+            return back()->with('success', "Perangkat {$device->registration_number} telah berhasil dikembalikan ke Gudang HB CKR.");
         } else {
             $device->stock_status = ($request->condition === 'rusak') ? 'rusak' : 'tersedia_pt';
             $device->condition = $request->condition;
@@ -622,8 +662,8 @@ class TaskController extends Controller
 
             if ($validated['activity'] === 'Spare Dikta') {
                 $updateData['current_technician_id'] = null;
-                $updateData['stock_status'] = 'tersedia_pt';
-                $updateData['current_location'] = 'Gudang HB Dikta (Stok Spare)';
+                $updateData['stock_status'] = 'tersedia_hb_jkt';
+                $updateData['current_location'] = 'Gudang HB JKT (Stok Spare)';
             } else {
                 $updateData['current_technician_id'] = $technician ? $technician->id : auth()->id();
                 $updateData['stock_status'] = 'dibawa_teknisi';
@@ -659,10 +699,10 @@ class TaskController extends Controller
             elseif (stripos($validated['name'], 'Fortinet') !== false) $brand = 'Fortinet';
             elseif (stripos($validated['name'], 'Cambium') !== false) $brand = 'Cambium';
 
-            $stockStatus = ($validated['activity'] === 'Spare Dikta') ? 'tersedia_pt' : 'dibawa_teknisi';
+            $stockStatus = ($validated['activity'] === 'Spare Dikta') ? 'tersedia_hb_jkt' : 'dibawa_teknisi';
             $currentTechId = ($validated['activity'] === 'Spare Dikta') ? null : ($technician ? $technician->id : auth()->id());
             $location = ($validated['activity'] === 'Spare Dikta') 
-                ? 'Gudang HB Dikta (Stok Spare)' 
+                ? 'Gudang HB JKT (Stok Spare)' 
                 : 'Dibawa oleh Teknisi ' . ($technician ? $technician->name : auth()->user()->name);
 
             $device = Device::create([
@@ -864,7 +904,7 @@ class TaskController extends Controller
 
         $validated = $request->validate([
             'device_id' => 'required|exists:devices,id',
-            'status' => 'required|string|in:SAMPAI LOKASI,TERINSTAL,PENDING,GAGAL INSTAL,DIBAWA KEMBALI KE HB DIKTA,DI BAWA KEMBALI KE AREA,RUSAK,HILANG',
+            'status' => 'required|string|in:SAMPAI LOKASI,TERINSTAL,PENDING,GAGAL INSTAL,DIBAWA KEMBALI KE HB JKT,DIBAWA KEMBALI KE HB CKR,DIBAWA KEMBALI KE HB DIKTA,DI BAWA KEMBALI KE AREA,RUSAK,HILANG',
             'nojar' => 'nullable|string|max:50',
             'current_location' => 'required|string|max:255',
             'address' => 'nullable|string|max:255',
@@ -939,11 +979,19 @@ class TaskController extends Controller
                 $actionLabel = 'Gagal Instalasi';
                 break;
 
+            case 'DIBAWA KEMBALI KE HB JKT':
             case 'DIBAWA KEMBALI KE HB DIKTA':
-                $device->stock_status = 'tersedia_pt';
+                $device->stock_status = 'tersedia_hb_jkt';
                 $device->current_technician_id = null;
-                $device->current_location = 'Gudang HB Dikta';
-                $actionLabel = 'Dibawa Kembali ke HB Dikta';
+                $device->current_location = 'Gudang HB JKT';
+                $actionLabel = 'Dibawa Kembali ke HB JKT';
+                break;
+
+            case 'DIBAWA KEMBALI KE HB CKR':
+                $device->stock_status = 'tersedia_hb_ckr';
+                $device->current_technician_id = null;
+                $device->current_location = 'Gudang HB CKR';
+                $actionLabel = 'Dibawa Kembali ke HB CKR';
                 break;
 
             case 'DI BAWA KEMBALI KE AREA':

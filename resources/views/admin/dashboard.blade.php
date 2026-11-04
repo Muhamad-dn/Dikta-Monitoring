@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <!-- 7 KARTU METRIK: 4 DI ATAS & 3 DI BAWAH (INTERAKTIF & DAPAT DIKLIK) -->
+    <!-- 8 KARTU METRIK: 4 DI ATAS & 4 DI BAWAH (INTERAKTIF & DAPAT DIKLIK) -->
     <div class="space-y-4" x-show="openMetrics">
         
         <!-- Baris 1: 4 Kartu di Atas -->
@@ -42,23 +42,39 @@
                 </div>
             </a>
 
-            <!-- 2. Tersedia di HB Dikta -->
-            <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_dikta']) }}" 
-               class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'tersedia_hb_dikta' ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-emerald-200 bg-emerald-50/30 shadow-xs hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5' }}">
+            <!-- 2. Tersedia di HB JKT -->
+            <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_jkt']) }}" 
+               class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-emerald-200 bg-emerald-50/30 shadow-xs hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusFilter === 'tersedia_hb_dikta' ? 'text-emerald-100' : 'text-emerald-700' }}">Tersedia di HB Dikta</span>
-                    @if($statusFilter === 'tersedia_hb_dikta')
+                    <span class="text-[10px] font-bold uppercase tracking-wider {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'text-emerald-100' : 'text-emerald-700' }}">Tersedia di HB JKT</span>
+                    @if(in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']))
                         <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-white text-emerald-800">Dipilih</span>
                     @endif
                 </div>
-                <div class="text-2xl font-black mt-1 {{ $statusFilter === 'tersedia_hb_dikta' ? 'text-white' : 'text-emerald-600' }}">{{ $stats['devices_at_hb_dikta'] }} <span class="text-xs font-normal {{ $statusFilter === 'tersedia_hb_dikta' ? 'text-emerald-100' : 'text-slate-400' }}">Unit</span></div>
-                <div class="mt-1 flex items-center justify-between text-[11px] {{ $statusFilter === 'tersedia_hb_dikta' ? 'text-emerald-100' : 'text-emerald-700' }}">
+                <div class="text-2xl font-black mt-1 {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'text-white' : 'text-emerald-600' }}">{{ $stats['devices_at_hb_jkt'] }} <span class="text-xs font-normal {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'text-emerald-100' : 'text-slate-400' }}">Unit</span></div>
+                <div class="mt-1 flex items-center justify-between text-[11px] {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'text-emerald-100' : 'text-emerald-700' }}">
                     <span>Stok siap dialokasikan</span>
-                    <span class="font-bold {{ $statusFilter === 'tersedia_hb_dikta' ? 'text-white' : 'text-emerald-700' }} group-hover:underline">Buka &rarr;</span>
+                    <span class="font-bold {{ in_array($statusFilter, ['tersedia_hb_jkt', 'tersedia_hb_dikta']) ? 'text-white' : 'text-emerald-700' }} group-hover:underline">Buka &rarr;</span>
                 </div>
             </a>
 
-            <!-- 3. Dibawa Teknisi -->
+            <!-- 3. Tersedia di HB CKR -->
+            <a href="{{ route('admin.dashboard', ['status' => 'tersedia_hb_ckr']) }}" 
+               class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'tersedia_hb_ckr' ? 'bg-teal-600 text-white border-teal-700 shadow-md ring-2 ring-teal-500' : 'bg-white border-teal-200 bg-teal-50/30 shadow-xs hover:border-teal-400 hover:shadow-md hover:-translate-y-0.5' }}">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusFilter === 'tersedia_hb_ckr' ? 'text-teal-100' : 'text-teal-700' }}">Tersedia di HB CKR</span>
+                    @if($statusFilter === 'tersedia_hb_ckr')
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-white text-teal-800">Dipilih</span>
+                    @endif
+                </div>
+                <div class="text-2xl font-black mt-1 {{ $statusFilter === 'tersedia_hb_ckr' ? 'text-white' : 'text-teal-600' }}">{{ $stats['devices_at_hb_ckr'] }} <span class="text-xs font-normal {{ $statusFilter === 'tersedia_hb_ckr' ? 'text-teal-100' : 'text-slate-400' }}">Unit</span></div>
+                <div class="mt-1 flex items-center justify-between text-[11px] {{ $statusFilter === 'tersedia_hb_ckr' ? 'text-teal-100' : 'text-teal-700' }}">
+                    <span>Stok siap dialokasikan</span>
+                    <span class="font-bold {{ $statusFilter === 'tersedia_hb_ckr' ? 'text-white' : 'text-teal-700' }} group-hover:underline">Buka &rarr;</span>
+                </div>
+            </a>
+
+            <!-- 4. Dibawa Teknisi -->
             <a href="{{ route('admin.dashboard', ['status' => 'dibawa_teknisi']) }}" 
                class="group p-5 rounded-2xl border-2 transition-all duration-200 cursor-pointer block {{ $statusFilter === 'dibawa_teknisi' ? 'bg-amber-500 text-slate-900 border-amber-600 shadow-md ring-2 ring-amber-400' : 'bg-white border-amber-300 bg-amber-50/30 shadow-xs hover:border-amber-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
@@ -74,7 +90,12 @@
                 </div>
             </a>
 
-            <!-- 4. Terinstal -->
+        </div>
+
+        <!-- Baris 2: 4 Kartu di Bawah -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- 5. Terinstal -->
             <a href="{{ route('admin.dashboard', ['status' => 'terinstal']) }}" 
                class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'terinstal' ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-500' : 'bg-white border-blue-200 bg-blue-50/30 shadow-xs hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
@@ -90,12 +111,7 @@
                 </div>
             </a>
 
-        </div>
-
-        <!-- Baris 2: 3 Kartu di Bawah -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            
-            <!-- 5. Pending -->
+            <!-- 6. Pending -->
             <a href="{{ route('admin.dashboard', ['status' => 'pending']) }}" 
                class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'pending' ? 'bg-orange-500 text-white border-orange-600 shadow-md ring-2 ring-orange-400' : 'bg-white border-orange-200 bg-orange-50/30 shadow-xs hover:border-orange-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
@@ -111,7 +127,7 @@
                 </div>
             </a>
 
-            <!-- 6. Rusak -->
+            <!-- 7. Rusak -->
             <a href="{{ route('admin.dashboard', ['status' => 'rusak']) }}" 
                class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'rusak' ? 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-500' : 'bg-white border-rose-200 bg-rose-50/30 shadow-xs hover:border-rose-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
@@ -127,7 +143,7 @@
                 </div>
             </a>
 
-            <!-- 7. Hilang -->
+            <!-- 8. Hilang -->
             <a href="{{ route('admin.dashboard', ['status' => 'hilang']) }}" 
                class="group p-5 rounded-2xl border transition-all duration-200 cursor-pointer block {{ $statusFilter === 'hilang' ? 'bg-purple-600 text-white border-purple-700 shadow-md ring-2 ring-purple-500' : 'bg-white border-purple-200 bg-purple-50/30 shadow-xs hover:border-purple-400 hover:shadow-md hover:-translate-y-0.5' }}">
                 <div class="flex items-center justify-between">
@@ -155,11 +171,23 @@
                 'badge' => $devices->count() . ' Unit Total',
                 'badge_class' => 'bg-slate-100 text-slate-800 border-slate-300'
             ],
-            'tersedia_hb_dikta' => [
-                'title' => 'Perangkat Tersedia di HB Dikta',
-                'desc' => 'Stok perangkat yang berada di gudang dan siap dialokasikan',
+            'tersedia_hb_jkt' => [
+                'title' => 'Perangkat Tersedia di HB JKT',
+                'desc' => 'Stok perangkat yang berada di gudang HB Jakarta dan siap dialokasikan',
                 'badge' => $devices->count() . ' Unit Tersedia',
                 'badge_class' => 'bg-emerald-100 text-emerald-800 border-emerald-200'
+            ],
+            'tersedia_hb_dikta' => [
+                'title' => 'Perangkat Tersedia di HB JKT',
+                'desc' => 'Stok perangkat yang berada di gudang HB Jakarta dan siap dialokasikan',
+                'badge' => $devices->count() . ' Unit Tersedia',
+                'badge_class' => 'bg-emerald-100 text-emerald-800 border-emerald-200'
+            ],
+            'tersedia_hb_ckr' => [
+                'title' => 'Perangkat Tersedia di HB CKR',
+                'desc' => 'Stok perangkat yang berada di gudang HB Cikarang dan siap dialokasikan',
+                'badge' => $devices->count() . ' Unit Tersedia',
+                'badge_class' => 'bg-teal-100 text-teal-800 border-teal-200'
             ],
             'dibawa_teknisi' => [
                 'title' => 'Perangkat Yang Sedang Dibawa Teknisi (Di Luar Kantor)',
@@ -311,7 +339,7 @@
                             </td>
                             <td class="px-6 py-3.5 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-2">
-                                    @if(in_array($dev->stock_status, ['tersedia_pt', 'tersedia_hb_dikta']))
+                                    @if(in_array($dev->stock_status, ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta']))
                                         <button type="button" 
                                                 @click="openAllocateModal('{{ $dev->id }}', '{{ $dev->registration_number }}', '{{ addslashes($dev->name) }}', '{{ $dev->nojar }}', '{{ $dev->activity }}', '{{ addslashes($dev->customer_name ?: ($dev->activeWorkOrder?->customer_name ?: '')) }}', '{{ addslashes($dev->address ?: ($dev->activeWorkOrder?->location_address ?: '')) }}', '{{ $dev->area }}')"
                                                 class="px-2.5 py-1 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors inline-flex items-center gap-1">

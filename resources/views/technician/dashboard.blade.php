@@ -297,7 +297,9 @@
                             <option value="SAMPAI LOKASI">Sampai Lokasi</option>
                             <option value="PENDING">Pending</option>
                             <option value="GAGAL INSTAL">Gagal Instal</option>
-                            <option value="DIBAWA KEMBALI KE HB DIKTA">Dibawa Kembali ke HB Dikta</option>
+                            <option value="DIBAWA KEMBALI KE HB JKT">Dibawa Kembali ke HB JKT</option>
+                            <option value="DIBAWA KEMBALI KE HB CKR">Dibawa Kembali ke HB CKR</option>
+                            <option value="DIBAWA KEMBALI KE HB DIKTA" class="hidden">Dibawa Kembali ke HB Dikta</option>
                             <option value="DI BAWA KEMBALI KE AREA">Di Bawa Kembali ke Area</option>
                             <option value="RUSAK">Rusak</option>
                             <option value="HILANG">Hilang</option>
@@ -596,7 +598,8 @@
                 <div>
                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tujuan Pengembalian *</label>
                     <select name="destination" required class="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-[#0b1329] border border-slate-300 dark:border-[#243048] rounded-xl text-slate-900 dark:text-white">
-                        <option value="Gudang HB Dikta">Gudang HB Dikta (Gudang Utama PT Dikta)</option>
+                        <option value="Gudang HB JKT">Gudang HB JKT (Homebase Jakarta)</option>
+                        <option value="Gudang HB CKR">Gudang HB CKR (Homebase Cikarang)</option>
                         <option value="Gudang Tekno">Lintasarta - Gudang Tekno</option>
                         <option value="BWA">Lintasarta - Area BWA</option>
                         <option value="BDA">Lintasarta - Area BDA</option>

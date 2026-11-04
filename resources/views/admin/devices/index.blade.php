@@ -37,7 +37,8 @@
             <div>
                 <select name="stock_status" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
                     <option value="">Semua Status Stok</option>
-                    <option value="tersedia_pt" {{ request('stock_status') == 'tersedia_pt' ? 'selected' : '' }}>Tersedia di HB Dikta</option>
+                    <option value="tersedia_hb_jkt" {{ in_array(request('stock_status'), ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']) ? 'selected' : '' }}>Tersedia di HB JKT</option>
+                    <option value="tersedia_hb_ckr" {{ request('stock_status') === 'tersedia_hb_ckr' ? 'selected' : '' }}>Tersedia di HB CKR</option>
                     <option value="dibawa_teknisi" {{ request('stock_status') == 'dibawa_teknisi' ? 'selected' : '' }}>Dibawa Teknisi</option>
                     <option value="terpasang_pelanggan" {{ request('stock_status') == 'terpasang_pelanggan' ? 'selected' : '' }}>Terinstal</option>
                     <option value="pending" {{ request('stock_status') == 'pending' ? 'selected' : '' }}>Pending</option>
