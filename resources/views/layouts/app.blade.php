@@ -8,10 +8,10 @@
     <title>@yield('title', 'Monitoring Teknisi') - DEVTRACK &bull; PT DIKTA</title>
     <link rel="icon" type="image/png" href="{{ asset('images/devtrack-logo.png') }}">
 
-    <!-- Google Fonts: Poppins (Headings/Branding), Inter (Body/UI), JetBrains Mono (Codes) -->
+    <!-- Google Fonts: Inter (Clean Normal UI), JetBrains Mono (Codes) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Theme Script (Prevent FOUC) -->
     <script>
@@ -30,9 +30,9 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                        heading: ['"Poppins"', 'sans-serif'],
-                        poppins: ['"Poppins"', 'sans-serif'],
+                        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        heading: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                        poppins: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
                         mono: ['"JetBrains Mono"', 'monospace'],
                     },
                     colors: {
@@ -57,9 +57,9 @@
     <style>
         [x-cloak] { display: none !important; }
 
-        /* Typography pairing: Poppins for headings & prominent branding, Inter for body UI */
-        h1, h2, h3, h4, h5, h6, .font-heading {
-            font-family: 'Poppins', sans-serif !important;
+        /* Typography: Clean normal sans-serif font for all headings, body, and UI elements */
+        html, body, h1, h2, h3, h4, h5, h6, .font-heading {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
 
         /* Dark mode global transitions & styling overrides */
