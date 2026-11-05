@@ -4,16 +4,8 @@
     <meta charset="utf-8">
     <title>Label Perangkat - {{ $device->registration_number }}</title>
     <style>
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 100 900;
-            font-style: normal;
-            font-display: swap;
-        }
         body {
-            font-family: 'Nomark', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             background: #f1f5f9;
             margin: 0;
             padding: 20px;

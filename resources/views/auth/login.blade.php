@@ -7,49 +7,10 @@
     <title>Login - DEVTRACK</title>
     <link rel="icon" type="image/png" href="{{ asset('images/devtrack-logo.png') }}">
 
-    <!-- Typeface: Nomark (BrandSemut by Ahmad Sidiq) -->
-    <style>
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 100 900;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 400;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 600;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 700;
-            font-style: normal;
-            font-display: swap;
-        }
-        @font-face {
-            font-family: 'Nomark';
-            src: url('{{ asset('fonts/Nomark.otf') }}') format('opentype'),
-                 url('/fonts/Nomark.otf') format('opentype');
-            font-weight: 800;
-            font-style: normal;
-            font-display: swap;
-        }
-    </style>
+    <!-- Google Fonts: Inter (Clean Normal UI for letters & numbers), JetBrains Mono (Codes) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -58,11 +19,11 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Nomark"', 'Georgia', 'serif'],
-                        heading: ['"Nomark"', 'Georgia', 'serif'],
-                        poppins: ['"Nomark"', 'Georgia', 'serif'],
-                        serif: ['"Nomark"', 'Georgia', 'serif'],
-                        mono: ['"Nomark"', 'monospace'],
+                        sans: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        heading: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                        poppins: ['"Inter"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
+                        serif: ['"Inter"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
                     },
                     colors: {
                         petrol: {
@@ -84,10 +45,8 @@
         }
     </script>
     <style>
-        *, html, body, h1, h2, h3, h4, h5, h6, input, optgroup, select, textarea, button, .font-sans, .font-heading, .font-poppins, .font-serif, .font-mono {
-            font-family: 'Nomark', Georgia, serif !important;
-            font-variant-ligatures: common-ligatures contextual discretionary-ligatures;
-            text-rendering: optimizeLegibility;
+        *, html, body, h1, h2, h3, h4, h5, h6, input, optgroup, select, textarea, button, .font-sans, .font-heading, .font-poppins, .font-serif {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
         }
     </style>
 </head>
