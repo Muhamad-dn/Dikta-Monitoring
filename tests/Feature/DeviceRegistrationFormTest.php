@@ -25,10 +25,9 @@ class DeviceRegistrationFormTest extends TestCase
         $response = $this->actingAs($admin)->get(route('admin.devices.create'));
 
         $response->assertStatus(200);
-        $response->assertSee('Scan Linier Barcode Perangkat');
-        $response->assertSee('Masukkan Registrasi Manual');
+        $response->assertDontSee('Scan Linier Barcode Perangkat');
+        $response->assertDontSee('linear-barcode-reader');
         $response->assertDontSee('Foto / Upload Barcode');
-        $response->assertSee('linear-barcode-reader');
         $response->assertSee('Nomor Registrasi');
         $response->assertSee('Nama Perangkat');
         $response->assertSee('NOJAR');

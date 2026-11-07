@@ -18,15 +18,15 @@ class LinearBarcodeScanStockTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_stock_page_renders_linear_barcode_scanner_elements()
+    public function test_stock_page_no_longer_renders_linear_barcode_scanner_elements()
     {
         $admin = User::where('role', 'admin')->first();
 
         $response = $this->actingAs($admin)->get(route('admin.devices.stock'));
 
         $response->assertStatus(200);
-        $response->assertSee('Scan Barcode Linier');
-        $response->assertSee('stock-linear-barcode-reader');
+        $response->assertDontSee('Scan Barcode Linier');
+        $response->assertDontSee('stock-linear-barcode-reader');
         $response->assertSee('stockAllocationApp()');
     }
 
