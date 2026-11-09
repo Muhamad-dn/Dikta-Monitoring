@@ -223,7 +223,7 @@
         </div>
         <div class="info-item">
             <span class="info-label">Petugas Pemeriksa</span>
-            <span class="info-value">: {{ $stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator' }}</span>
+            <span class="info-value">: {{ $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator') }}</span>
         </div>
         <div class="info-item">
             <span class="info-label">Tanggal Pelaksanaan</span>
@@ -304,7 +304,7 @@
     <div class="signatures">
         <div class="sig-col">
             <div class="sig-title">Petugas Audit Lapangan</div>
-            <div class="sig-name">{{ $stockOpname->conductor ? $stockOpname->conductor->name : 'Admin Gudang' }}</div>
+            <div class="sig-name">{{ $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Admin Gudang') }}</div>
             <div class="sig-role">Pelaksana Stock Opname</div>
         </div>
 

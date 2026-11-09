@@ -23,6 +23,7 @@ class StockOpname extends Model
         'total_surplus',
         'notes',
         'conducted_by',
+        'admin_name',
         'completed_at',
     ];
 

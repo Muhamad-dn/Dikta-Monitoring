@@ -53,14 +53,14 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
-            'title' => 'Stock Opname HB JKT November 2026',
-            'notes' => 'Audit akhir bulan',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $this->assertDatabaseHas('stock_opnames', [
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
             'status' => 'in_progress',
         ]);
 
@@ -78,6 +78,7 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $opname = StockOpname::first();
@@ -108,6 +109,7 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $opname = StockOpname::first();
@@ -136,6 +138,7 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $opname = StockOpname::first();
@@ -157,6 +160,7 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $opname = StockOpname::first();
@@ -170,7 +174,7 @@ class StockOpnameTest extends TestCase
         $this->assertNotNull($opname->completed_at);
         $this->assertEquals('Pemeriksaan selesai, semua unit lengkap.', $opname->notes);
 
-        $response->assertRedirect(route('admin.stock-opname.show', $opname));
+        $response->assertRedirect(route('admin.stock-opname.index'));
     }
 
     public function test_admin_can_export_and_print_stock_opname()
@@ -179,6 +183,7 @@ class StockOpnameTest extends TestCase
             'period_month' => 11,
             'period_year' => 2026,
             'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
         ]);
 
         $opname = StockOpname::first();

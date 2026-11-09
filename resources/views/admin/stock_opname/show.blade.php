@@ -44,7 +44,7 @@
                     <span>•</span>
                     <span>Lokasi: <strong>{{ $stockOpname->location_label }}</strong></span>
                     <span>•</span>
-                    <span>Pemeriksa: <strong>{{ $stockOpname->conductor ? $stockOpname->conductor->name : 'Admin' }}</strong></span>
+                    <span>Pemeriksa: <strong>{{ $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Admin') }}</strong></span>
                 </div>
             </div>
         </div>

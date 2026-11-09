@@ -121,48 +121,44 @@ class StockOpnameController extends Controller
         $validated = $request->validate([
             'period_month' => 'required|integer|between:1,12',
             'period_year' => 'required|integer|between:2020,2099',
-            'location' => 'required|in:semua,hb_jkt,hb_ckr',
-            'title' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
+            'admin_name' => 'required|string|max:255',
+            'location' => 'nullable|in:semua,hb_jkt,hb_ckr',
         ]);
 
-        $monthName = StockOpname::MONTHS[$validated['period_month']] ?? 'Bulan ' . $validated['period_month'];
-        $locationLabel = StockOpname::LOCATIONS[$validated['location']] ?? 'Gudang';
+        $month = (int)$validated['period_month'];
+        $year = (int)$validated['period_year'];
+        $location = $validated['location'] ?? 'hb_jkt';
+        $adminName = trim($validated['admin_name']);
 
-        $title = !empty($validated['title']) 
-            ? $validated['title'] 
-            : "Stock Opname {$monthName} {$validated['period_year']} ({$locationLabel})";
-
-        $code = 'SO-' . $validated['period_year'] . str_pad($validated['period_month'], 2, '0', STR_PAD_LEFT) . '-' . strtoupper(Str::random(4));
+        $monthName = StockOpname::MONTHS[$month] ?? 'Bulan ' . $month;
+        $title = "Stock Opname {$monthName} {$year}";
+        $code = 'SO-' . $year . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . strtoupper(Str::random(4));
 
         DB::beginTransaction();
         try {
             $opname = StockOpname::create([
                 'opname_code' => $code,
                 'title' => $title,
-                'period_month' => $validated['period_month'],
-                'period_year' => $validated['period_year'],
-                'location' => $validated['location'],
+                'period_month' => $month,
+                'period_year' => $year,
+                'location' => $location,
+                'admin_name' => $adminName,
                 'status' => 'in_progress',
-                'notes' => $validated['notes'] ?? null,
                 'conducted_by' => auth()->id(),
             ]);
 
-            // Ambil snapshot perangkat sesuai lokasi
             $deviceQuery = Device::query();
-            if ($validated['location'] === 'hb_jkt') {
+            if ($location === 'hb_jkt') {
                 $deviceQuery->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt']);
-            } elseif ($validated['location'] === 'hb_ckr') {
+            } elseif ($location === 'hb_ckr') {
                 $deviceQuery->where('stock_status', 'tersedia_hb_ckr');
             } else {
-                // Semua perangkat aktif (tidak termasuk yang sudah retur permanen ke lintasarta)
                 $deviceQuery->where(function ($q) {
                     $q->whereNull('returned_to_lintasarta')->orWhere('returned_to_lintasarta', false);
                 });
             }
 
             $devices = $deviceQuery->get();
-
             $itemsData = [];
             $now = now();
             foreach ($devices as $device) {
@@ -174,25 +170,23 @@ class StockOpnameController extends Controller
                     'area' => $device->area,
                     'system_status' => $device->stock_status,
                     'system_location' => $device->current_location,
-                    'physical_status' => 'missing', // default belum di-scan
+                    'physical_status' => 'missing',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
             }
 
             if (!empty($itemsData)) {
-                // Bulk insert dalam chunk 200 baris
                 foreach (array_chunk($itemsData, 200) as $chunk) {
                     StockOpnameItem::insert($chunk);
                 }
             }
 
             $opname->recalculateTotals();
-
             DB::commit();
 
             return redirect()->route('admin.stock-opname.show', $opname)
-                ->with('success', "Sesi {$opname->title} berhasil dibuat dengan total target {$opname->total_system} perangkat.");
+                ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Halaman scan siap digunakan.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal membuat sesi stock opname: ' . $e->getMessage())->withInput();
@@ -419,8 +413,8 @@ class StockOpnameController extends Controller
             'notes' => $request->input('notes', $stockOpname->notes),
         ]);
 
-        return redirect()->route('admin.stock-opname.show', $stockOpname)
-            ->with('success', "Stock Opname {$stockOpname->title} telah resmi diselesaikan dan dikunci.");
+        return redirect()->route('admin.stock-opname.index')
+            ->with('success', "Stock Opname {$stockOpname->title} telah selesai! Hasil audit telah dicatat di tabel riwayat di bawah dan dapat dicetak ke Excel.");
     }
 
     public function export(StockOpname $stockOpname): StreamedResponse
@@ -447,6 +441,7 @@ class StockOpnameController extends Controller
             fputcsv($handle, ['Kode Sesi', $stockOpname->opname_code]);
             fputcsv($handle, ['Judul', $stockOpname->title]);
             fputcsv($handle, ['Periode', $stockOpname->month_name . ' ' . $stockOpname->period_year]);
+            fputcsv($handle, ['Nama Admin Pemeriksa', $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator')]);
             fputcsv($handle, ['Lokasi', $stockOpname->location_label]);
             fputcsv($handle, ['Status', $stockOpname->status === 'completed' ? 'Selesai' : 'Sedang Berjalan']);
             fputcsv($handle, ['Total Target Sistem', $stockOpname->total_system]);
