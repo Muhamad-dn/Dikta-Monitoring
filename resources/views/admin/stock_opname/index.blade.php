@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Stock Opname Perangkat')
-@section('page_title', 'Stock Opname Bulanan')
-@section('page_subtitle', 'Audit fisik stok gudang berkala akhir bulan vs catatan sistem PT DIKTA')
+@section('title', 'Arsip Stock Opname')
+@section('page_title', 'Arsip Stock Opname')
+@section('page_subtitle', 'Audit fisik stok gudang berkala akhir bulan dan arsip laporan Excel PT DIKTA')
 
 @section('content')
 <div class="space-y-6" x-data="{ openModal: false }">
@@ -14,10 +14,10 @@
                 <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
-                Riwayat Sesi Stock Opname
+                Arsip Stock Opname
             </h2>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Lakukan cek fisik barcode di akhir bulan untuk memastikan seluruh unit di gudang dan lapangan selalu sinkron.
+                Lakukan cek fisik barcode di akhir bulan dan cetak arsip laporan hasil stock opname langsung ke format Excel.
             </p>
         </div>
 
@@ -42,21 +42,21 @@
     <!-- Quick Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Sesi Selesai</span>
-            <div class="text-2xl font-black text-slate-900 dark:text-white mt-1">{{ $stats['total_completed'] }} <span class="text-xs font-medium text-slate-400">Sesi</span></div>
-            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">Tersedia untuk di-download ke Excel</p>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Total Arsip Selesai</span>
+            <div class="text-2xl font-black text-slate-900 dark:text-white mt-1">{{ $stats['total_completed'] }} <span class="text-xs font-medium text-slate-400">Arsip</span></div>
+            <p class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">Siap dicetak atau diunduh ke Excel</p>
         </div>
 
         <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-900/50 bg-amber-50/20 shadow-xs">
             <span class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Sesi Sedang Berjalan</span>
             <div class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{{ $stats['total_in_progress'] }} <span class="text-xs font-medium text-amber-700/60">Aktif</span></div>
-            <p class="text-[11px] text-amber-600/80 font-medium mt-1">Siap untuk dipindai dengan barcode</p>
+            <p class="text-[11px] text-amber-600/80 font-medium mt-1">Sedang proses scan barcode di gudang</p>
         </div>
 
         <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Terakhir Dilaksanakan</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Arsip Terakhir</span>
             <div class="text-sm font-bold text-slate-900 dark:text-white mt-2 truncate">
-                {{ $stats['last_opname'] ? $stats['last_opname']->title : 'Belum pernah selesai' }}
+                {{ $stats['last_opname'] ? ('Stock Opname Bulan ' . $stats['last_opname']->month_name . ' ' . $stats['last_opname']->period_year) : 'Belum pernah selesai' }}
             </div>
             <p class="text-[11px] text-slate-400 font-medium mt-1">
                 {{ $stats['last_opname'] && $stats['last_opname']->completed_at ? $stats['last_opname']->completed_at->format('d M Y H:i') : '-' }}
@@ -64,14 +64,15 @@
         </div>
     </div>
 
-    <!-- TABEL RIWAYAT STOCK OPNAME BULANAN & EXCEL -->
+    <!-- TABEL ARSIP STOCK OPNAME & FITUR CETAK EXCEL -->
     <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         <div class="p-4 sm:px-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
                 <h3 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <span>Riwayat Hasil Stock Opname Bulanan</span>
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>Arsip Stock Opname Bulanan</span>
                 </h3>
-                <p class="text-[11px] text-slate-500 mt-0.5">Daftar sesi yang telah selesai dapat langsung dicetak atau diunduh sebagai file Excel</p>
+                <p class="text-[11px] text-slate-500 mt-0.5">Seluruh arsip hasil pengecekan fisik perangkat per bulan dengan tombol cetak Excel di sampingnya</p>
             </div>
 
             <form method="GET" action="{{ route('admin.stock-opname.index') }}" class="flex items-center gap-2">
@@ -96,9 +97,9 @@
                 <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                 </div>
-                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Belum Ada Sesi Stock Opname</h4>
+                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Belum Ada Arsip Stock Opname</h4>
                 <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                    Klik tombol <strong>"Mulai Stock Opname"</strong> di atas untuk mengisi formulir dan mulai memindai barcode fisik perangkat.
+                    Klik tombol <strong>"Mulai Stock Opname"</strong> di atas untuk mengisi bulan dan nama admin pemeriksa, lalu mulai memindai barcode fisik perangkat.
                 </p>
             </div>
         @else
@@ -106,14 +107,13 @@
                 <table class="w-full text-left text-xs">
                     <thead>
                         <tr class="bg-slate-50/70 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                            <th class="py-3 px-4">Periode Stock Opname</th>
-                            <th class="py-3 px-4">Nama Admin Pemeriksa</th>
+                            <th class="py-3 px-4">Arsip Stock Opname</th>
                             <th class="py-3 px-4">Tanggal Pelaksanaan</th>
                             <th class="py-3 px-4 text-center">Target Sistem</th>
                             <th class="py-3 px-4 text-center">Fisik Sesuai (Match)</th>
                             <th class="py-3 px-4 text-center">Selisih Kurang</th>
                             <th class="py-3 px-4 text-center">Status</th>
-                            <th class="py-3 px-4 text-right">Aksi Cetak / Excel</th>
+                            <th class="py-3 px-4 text-right">Fitur Cetak Excel & Laporan</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -125,16 +125,14 @@
                             @endphp
                             <tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                                 <td class="py-3.5 px-4">
-                                    <div class="font-bold text-slate-900 dark:text-white text-sm">
-                                        {{ $opname->month_name }} {{ $opname->period_year }}
+                                    <div class="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        <span>Stock Opname Bulan {{ $opname->month_name }} {{ $opname->period_year }}</span>
                                     </div>
-                                    <div class="text-[11px] font-mono text-slate-400 mt-0.5">{{ $opname->opname_code }}</div>
-                                </td>
-                                <td class="py-3.5 px-4">
-                                    <div class="font-semibold text-slate-800 dark:text-slate-200">
-                                        {{ $opname->admin_name ?: ($opname->conductor ? $opname->conductor->name : 'Administrator') }}
+                                    <div class="text-[11px] text-slate-500 mt-1">
+                                        Pemeriksa: <strong class="text-slate-700 dark:text-slate-300">{{ $opname->admin_name ?: ($opname->conductor ? $opname->conductor->name : 'Administrator') }}</strong>
+                                        • <span class="font-mono text-slate-400">{{ $opname->opname_code }}</span>
                                     </div>
-                                    <div class="text-[11px] text-slate-400 mt-0.5">Petugas Audit</div>
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <div class="font-medium text-slate-700 dark:text-slate-300">
@@ -175,25 +173,25 @@
                                 </td>
                                 <td class="py-3.5 px-4 text-right whitespace-nowrap">
                                     <div class="inline-flex items-center gap-2">
-                                        <!-- Tombol Download Excel -->
+                                        <!-- FITUR CETAK EXCEL (DI SAMPINGNYA LANGSUNG) -->
                                         <a href="{{ route('admin.stock-opname.export', $opname) }}" 
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 font-bold text-xs transition-colors shadow-xs">
-                                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                            <span>Excel</span>
+                                           class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-sm hover:scale-[1.02]">
+                                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                            <span>Cetak Excel</span>
                                         </a>
 
                                         <!-- Tombol Cetak Berita Acara -->
                                         <a href="{{ route('admin.stock-opname.print', $opname) }}" target="_blank"
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs transition-colors shadow-xs">
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-xs transition-colors shadow-xs">
                                             <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                                            <span>Cetak</span>
+                                            <span>Cetak PDF</span>
                                         </a>
 
                                         <!-- Tombol Lihat / Lanjutkan Scan -->
                                         <a href="{{ route('admin.stock-opname.show', $opname) }}" 
-                                           class="inline-flex items-center gap-1 px-3 py-1.5 {{ $opname->status === 'completed' ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'bg-blue-600 hover:bg-blue-700 text-white' }} rounded-lg text-xs font-bold transition-all shadow-xs">
+                                           class="inline-flex items-center gap-1 px-3 py-1.5 {{ $opname->status === 'completed' ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'bg-blue-600 hover:bg-blue-700 text-white' }} rounded-xl text-xs font-bold transition-all shadow-xs">
                                             @if($opname->status === 'completed')
-                                                <span>Lihat</span>
+                                                <span>Detail</span>
                                             @else
                                                 <span>Scan &rarr;</span>
                                             @endif
@@ -274,7 +272,7 @@
                     <input type="text" name="admin_name" value="{{ auth()->user()->name ?? 'Administrator Sistem' }}" required
                            placeholder="Masukkan nama admin pemeriksa..."
                            class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2.5 focus:ring-2 focus:ring-blue-500 font-medium">
-                    <p class="text-[10px] text-slate-400 mt-1">Nama ini akan dicantumkan di laporan audit dan cetak Berita Acara Excel.</p>
+                    <p class="text-[10px] text-slate-400 mt-1">Nama ini akan dicantumkan di arsip laporan audit dan file cetak Excel.</p>
                 </div>
 
                 <!-- Tombol Aksi Bawah Modal -->

@@ -29,8 +29,7 @@ class StockOpnameTest extends TestCase
     {
         $response = $this->actingAs($this->admin)->get(route('admin.stock-opname.index'));
         $response->assertStatus(200);
-        $response->assertSee('Stock Opname Bulanan');
-        $response->assertSee('Riwayat Sesi Stock Opname');
+        $response->assertSee('Arsip Stock Opname');
     }
 
     public function test_teknisi_cannot_access_stock_opname()
