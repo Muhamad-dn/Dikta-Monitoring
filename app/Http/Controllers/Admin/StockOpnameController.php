@@ -137,7 +137,8 @@ class StockOpnameController extends Controller
             }
 
             if (!empty($itemsData)) {
-                foreach (array_chunk($itemsData, 200) as $chunk) {
+                // Gunakan chunk kecil (50) agar tidak melampaui SQLITE_MAX_VARIABLE_NUMBER (999 variabel)
+                foreach (array_chunk($itemsData, 50) as $chunk) {
                     StockOpnameItem::insert($chunk);
                 }
             }
@@ -149,7 +150,8 @@ class StockOpnameController extends Controller
                 ->with('success', "Sesi {$opname->title} berhasil dimulai! Tabel scan barcode siap digunakan.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memulai stock opname: ' . $e->getMessage());
+            $msg = $e instanceof \Illuminate\Database\QueryException ? 'Kendala database saat menyiapkan data perangkat.' : $e->getMessage();
+            return back()->with('error', 'Gagal memulai stock opname: ' . Str::limit($msg, 120));
         }
     }
 
@@ -238,7 +240,8 @@ class StockOpnameController extends Controller
             }
 
             if (!empty($itemsData)) {
-                foreach (array_chunk($itemsData, 200) as $chunk) {
+                // Gunakan chunk 50 agar aman dari limit 999 SQL variables di SQLite
+                foreach (array_chunk($itemsData, 50) as $chunk) {
                     StockOpnameItem::insert($chunk);
                 }
             }
@@ -250,7 +253,8 @@ class StockOpnameController extends Controller
                 ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Silakan lakukan scan barcode fisik perangkat pada tabel di bawah.");
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal membuat sesi stock opname: ' . $e->getMessage())->withInput();
+            $msg = $e instanceof \Illuminate\Database\QueryException ? 'Kendala database saat menyiapkan data perangkat.' : $e->getMessage();
+            return back()->with('error', 'Gagal membuat sesi stock opname: ' . Str::limit($msg, 120))->withInput();
         }
     }
 
