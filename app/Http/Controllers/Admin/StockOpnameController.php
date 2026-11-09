@@ -155,17 +155,41 @@ class StockOpnameController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'period_month' => 'required|integer|between:1,12',
-            'period_year' => 'required|integer|between:2020,2099',
-            'admin_name' => 'required|string|max:255',
-            'location' => 'nullable|in:semua,hb_jkt,hb_ckr',
-        ]);
+        // Auto-migrate safety check on serverless Vercel
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('stock_opnames') || !\Illuminate\Support\Facades\Schema::hasColumn('stock_opnames', 'admin_name') || !\Illuminate\Support\Facades\Schema::hasTable('stock_opname_items')) {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            }
+        } catch (\Throwable $e) {
+            // Safety log
+        }
 
-        $month = (int)$validated['period_month'];
-        $year = (int)$validated['period_year'];
-        $location = $validated['location'] ?? 'hb_jkt';
-        $adminName = trim($validated['admin_name']);
+        // Cek jika sudah ada sesi stock opname yang sedang aktif
+        $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
+        if ($activeOpname) {
+            return redirect()->route('admin.stock-opname.index')
+                ->with('info', "Sesi Stock Opname {$activeOpname->title} sudah sedang berjalan. Silakan lanjutkan proses scan pada tabel di bawah.");
+        }
+
+        $month = (int)$request->input('period_month', date('n'));
+        if ($month < 1 || $month > 12) {
+            $month = (int)date('n');
+        }
+
+        $year = (int)$request->input('period_year', date('Y'));
+        if ($year < 2020 || $year > 2099) {
+            $year = (int)date('Y');
+        }
+
+        $adminName = trim($request->input('admin_name', ''));
+        if (empty($adminName)) {
+            $adminName = auth()->user()->name ?? 'Administrator Sistem';
+        }
+
+        $location = $request->input('location', 'hb_jkt');
+        if (!in_array($location, ['hb_jkt', 'hb_ckr', 'semua'])) {
+            $location = 'hb_jkt';
+        }
 
         $monthName = StockOpname::MONTHS[$month] ?? 'Bulan ' . $month;
         $title = "Stock Opname {$monthName} {$year}";

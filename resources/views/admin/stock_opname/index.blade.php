@@ -5,6 +5,171 @@
 @section('page_subtitle', 'Audit fisik stok gudang berkala akhir bulan dan arsip laporan Excel PT DIKTA')
 
 @section('content')
+
+<!-- Alpine App Definition (Didefinisikan sebelum DOM Render) -->
+<script>
+function stockOpnameIndexApp(config) {
+    return {
+        openModal: false,
+        openCompleteModal: false,
+        submitting: false,
+        hasActive: config.hasActive,
+        opnameId: config.opnameId,
+        scanUrl: config.scanUrl,
+        csrfToken: config.csrfToken,
+        stats: config.initialStats,
+        scanInput: '',
+        isLoading: false,
+        cameraActive: false,
+        html5QrCode: null,
+        scanMessage: '',
+        scanMessageType: '',
+
+        percentMatch() {
+            if (!this.stats.total_system || this.stats.total_system === 0) return 0;
+            return ((this.stats.total_matched / this.stats.total_system) * 100).toFixed(1);
+        },
+
+        playBeep(success = true) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (success) {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                }
+            } catch (e) {}
+        },
+
+        async submitScan() {
+            const code = this.scanInput.trim();
+            if (!code || this.isLoading || !this.scanUrl) return;
+
+            this.isLoading = true;
+            this.scanMessage = '';
+
+            try {
+                const res = await fetch(this.scanUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    if (data.type === 'matched') {
+                        this.playBeep(true);
+                        this.scanMessageType = 'matched';
+                        this.scanMessage = data.message;
+                    } else if (data.type === 'anomaly') {
+                        this.playBeep(false);
+                        this.scanMessageType = 'anomaly';
+                        this.scanMessage = data.message;
+                    }
+
+                    if (data.stats) {
+                        this.stats = data.stats;
+                    }
+
+                    if (data.item && data.item.id) {
+                        const row = document.getElementById('row-item-' + data.item.id);
+                        if (row) {
+                            row.classList.add('bg-emerald-500/20');
+                            setTimeout(() => row.classList.remove('bg-emerald-500/20'), 3000);
+                        }
+                    }
+
+                    this.scanInput = '';
+                    if (this.$refs.scanInputRef) {
+                        this.$refs.scanInputRef.focus();
+                    }
+                } else {
+                    this.playBeep(false);
+                    this.scanMessageType = data.not_found ? 'not_found' : 'error';
+                    this.scanMessage = data.message || 'Gagal memproses barcode.';
+                    this.scanInput = '';
+                    if (this.$refs.scanInputRef) {
+                        this.$refs.scanInputRef.focus();
+                    }
+                }
+            } catch (err) {
+                this.playBeep(false);
+                this.scanMessageType = 'error';
+                this.scanMessage = 'Terjadi kesalahan jaringan atau server.';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        quickCheck(regNumber) {
+            this.scanInput = regNumber;
+            this.submitScan();
+        },
+
+        toggleCamera() {
+            if (this.cameraActive) {
+                this.stopCamera();
+            } else {
+                this.startCamera();
+            }
+        },
+
+        startCamera() {
+            this.cameraActive = true;
+            this.$nextTick(() => {
+                if (typeof Html5Qrcode !== 'undefined') {
+                    if (this.html5QrCode) {
+                        try { this.html5QrCode.stop(); } catch(e) {}
+                    }
+                    this.html5QrCode = new Html5Qrcode("stock-opname-scanner");
+                    this.html5QrCode.start(
+                        { facingMode: "environment" },
+                        { fps: 10, qrbox: { width: 240, height: 150 } },
+                        (decodedText) => {
+                            this.scanInput = decodedText;
+                            this.submitScan();
+                        },
+                        () => {}
+                    ).catch(() => {
+                        alert('Tidak dapat mengakses kamera. Pastikan izin kamera aktif.');
+                        this.cameraActive = false;
+                    });
+                }
+            });
+        },
+
+        stopCamera() {
+            if (this.html5QrCode) {
+                this.html5QrCode.stop().then(() => {
+                    this.html5QrCode.clear();
+                }).catch(() => {});
+            }
+            this.cameraActive = false;
+        }
+    };
+}
+</script>
+
 <div class="space-y-8" x-data="stockOpnameIndexApp({
     hasActive: {{ isset($activeOpname) && $activeOpname ? 'true' : 'false' }},
     opnameId: {{ isset($activeOpname) && $activeOpname ? $activeOpname->id : 'null' }},
@@ -18,6 +183,28 @@
         total_physical: {{ isset($activeOpname) && $activeOpname ? $activeOpname->total_physical : 0 }}
     }
 })">
+
+    <!-- Notifikasi Sukses / Error Halaman -->
+    @if(session('success'))
+        <div class="p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-2xl text-xs font-bold flex items-center gap-3 shadow-xs">
+            <span class="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0">&check;</span>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 rounded-2xl text-xs font-bold flex items-center gap-3 shadow-xs">
+            <span class="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shrink-0">&cross;</span>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="p-4 bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300 rounded-2xl text-xs font-bold flex items-center gap-3 shadow-xs">
+            <span class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">i</span>
+            <span>{{ session('info') }}</span>
+        </div>
+    @endif
 
     <!-- Top Action & Overview -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -479,7 +666,7 @@
                 </button>
             </div>
 
-            <form method="POST" action="{{ route('admin.stock-opname.store') }}" class="space-y-4">
+            <form method="POST" action="{{ route('admin.stock-opname.store') }}" @submit="submitting = true" class="space-y-4">
                 @csrf
                 <input type="hidden" name="location" value="hb_jkt">
 
@@ -521,14 +708,18 @@
 
                 <!-- Tombol Aksi Bawah Modal -->
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" @click="openModal = false"
+                    <button type="button" @click="openModal = false" :disabled="submitting"
                             class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         Batal
                     </button>
-                    <button type="submit" 
-                            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5">
-                        <span>Mulai Scan Sekarang</span>
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    <button type="submit" id="btn-submit-opname" :disabled="submitting"
+                            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50">
+                        <span x-show="!submitting">Mulai Stock Opname</span>
+                        <span x-show="submitting" x-cloak class="flex items-center gap-1.5">
+                            <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            <span>Memproses...</span>
+                        </span>
+                        <svg x-show="!submitting" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                     </button>
                 </div>
             </form>
@@ -597,167 +788,4 @@
     @endif
 
 </div>
-
-<!-- Alpine & Audio Beep Script -->
-<script>
-function stockOpnameIndexApp(config) {
-    return {
-        openModal: false,
-        openCompleteModal: false,
-        hasActive: config.hasActive,
-        opnameId: config.opnameId,
-        scanUrl: config.scanUrl,
-        csrfToken: config.csrfToken,
-        stats: config.initialStats,
-        scanInput: '',
-        isLoading: false,
-        cameraActive: false,
-        html5QrCode: null,
-        scanMessage: '',
-        scanMessageType: '',
-
-        percentMatch() {
-            if (!this.stats.total_system || this.stats.total_system === 0) return 0;
-            return ((this.stats.total_matched / this.stats.total_system) * 100).toFixed(1);
-        },
-
-        playBeep(success = true) {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                if (success) {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.15);
-                } else {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, ctx.currentTime);
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.3);
-                }
-            } catch (e) {}
-        },
-
-        async submitScan() {
-            const code = this.scanInput.trim();
-            if (!code || this.isLoading || !this.scanUrl) return;
-
-            this.isLoading = true;
-            this.scanMessage = '';
-
-            try {
-                const res = await fetch(this.scanUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ code: code })
-                });
-
-                const data = await res.json();
-
-                if (res.ok && data.success) {
-                    if (data.type === 'matched') {
-                        this.playBeep(true);
-                        this.scanMessageType = 'matched';
-                        this.scanMessage = data.message;
-                    } else if (data.type === 'anomaly') {
-                        this.playBeep(false);
-                        this.scanMessageType = 'anomaly';
-                        this.scanMessage = data.message;
-                    }
-
-                    if (data.stats) {
-                        this.stats = data.stats;
-                    }
-
-                    if (data.item && data.item.id) {
-                        const row = document.getElementById('row-item-' + data.item.id);
-                        if (row) {
-                            row.classList.add('bg-emerald-500/20');
-                            setTimeout(() => row.classList.remove('bg-emerald-500/20'), 3000);
-                        }
-                    }
-
-                    this.scanInput = '';
-                    if (this.$refs.scanInputRef) {
-                        this.$refs.scanInputRef.focus();
-                    }
-                } else {
-                    this.playBeep(false);
-                    this.scanMessageType = data.not_found ? 'not_found' : 'error';
-                    this.scanMessage = data.message || 'Gagal memproses barcode.';
-                    this.scanInput = '';
-                    if (this.$refs.scanInputRef) {
-                        this.$refs.scanInputRef.focus();
-                    }
-                }
-            } catch (err) {
-                this.playBeep(false);
-                this.scanMessageType = 'error';
-                this.scanMessage = 'Terjadi kesalahan jaringan atau server.';
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
-        quickCheck(regNumber) {
-            this.scanInput = regNumber;
-            this.submitScan();
-        },
-
-        toggleCamera() {
-            if (this.cameraActive) {
-                this.stopCamera();
-            } else {
-                this.startCamera();
-            }
-        },
-
-        startCamera() {
-            this.cameraActive = true;
-            this.$nextTick(() => {
-                if (typeof Html5Qrcode !== 'undefined') {
-                    if (this.html5QrCode) {
-                        try { this.html5QrCode.stop(); } catch(e) {}
-                    }
-                    this.html5QrCode = new Html5Qrcode("stock-opname-scanner");
-                    this.html5QrCode.start(
-                        { facingMode: "environment" },
-                        { fps: 10, qrbox: { width: 240, height: 150 } },
-                        (decodedText) => {
-                            this.scanInput = decodedText;
-                            this.submitScan();
-                        },
-                        () => {}
-                    ).catch(() => {
-                        alert('Tidak dapat mengakses kamera. Pastikan izin kamera aktif.');
-                        this.cameraActive = false;
-                    });
-                }
-            });
-        },
-
-        stopCamera() {
-            if (this.html5QrCode) {
-                this.html5QrCode.stop().then(() => {
-                    this.html5QrCode.clear();
-                }).catch(() => {});
-            }
-            this.cameraActive = false;
-        }
-    };
-}
-</script>
 @endsection

@@ -30,6 +30,15 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        // Auto-migrate tables on serverless environments (Vercel) if missing
+        try {
+            if (!Schema::hasTable('stock_opnames') || !Schema::hasColumn('stock_opnames', 'admin_name') || !Schema::hasTable('stock_opname_items')) {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Stock opname auto-migrate check: ' . $e->getMessage());
+        }
+
         View::composer('layouts.app', function ($view) {
             if (auth()->check() && in_array(auth()->user()->role, ['admin', 'koordinator'])) {
                 try {
