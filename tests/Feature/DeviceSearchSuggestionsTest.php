@@ -177,7 +177,7 @@ class DeviceSearchSuggestionsTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Cari berdasarkan Nomor Registrasi, NOJAR, Nama Perangkat, atau Area');
         $response->assertSee('placeholder="Cari No. Registrasi, NOJAR, Nama Perangkat, atau Area..."', false);
-        $response->assertSee('deviceIndexApp');
+        $response->assertSee('deviceSearchAutocomplete');
         $response->assertSee('pilihan perangkat ditemukan');
     }
 
