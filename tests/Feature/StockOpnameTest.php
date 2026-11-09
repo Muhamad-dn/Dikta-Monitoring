@@ -43,7 +43,7 @@ class StockOpnameTest extends TestCase
         $response = $this->actingAs($this->admin)->get(route('admin.stock-opname.start'));
         $opname = StockOpname::first();
         $this->assertNotNull($opname);
-        $response->assertRedirect(route('admin.stock-opname.index'));
+        $response->assertRedirect(route('admin.stock-opname.show', $opname));
     }
 
     public function test_admin_can_create_new_stock_opname_session()
@@ -68,7 +68,7 @@ class StockOpnameTest extends TestCase
         $this->assertGreaterThan(0, $opname->total_system);
         $this->assertCount($opname->total_system, $opname->items);
 
-        $response->assertRedirect(route('admin.stock-opname.index'));
+        $response->assertRedirect(route('admin.stock-opname.show', $opname));
     }
 
     public function test_admin_can_scan_device_successfully()

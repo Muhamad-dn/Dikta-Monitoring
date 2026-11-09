@@ -5,6 +5,183 @@
 @section('page_subtitle', $stockOpname->title . ' • ' . $stockOpname->location_label)
 
 @section('content')
+
+<!-- Alpine & HTML5-QRCode Scanner Controller Script (Didefinisikan sebelum DOM Render) -->
+<script>
+function stockOpnameApp(config) {
+    return {
+        opnameId: config.opnameId,
+        scanUrl: config.scanUrl,
+        csrfToken: config.csrfToken,
+        isCompleted: config.isCompleted,
+        stats: config.initialStats,
+        scanInput: '',
+        isLoading: false,
+        cameraActive: false,
+        html5QrCode: null,
+        scanMessage: '',
+        scanMessageType: '', // 'matched', 'anomaly', 'error', 'not_found'
+        openCompleteModal: false,
+
+        percentMatch() {
+            if (!this.stats.total_system || this.stats.total_system === 0) return 0;
+            return ((this.stats.total_matched / this.stats.total_system) * 100).toFixed(1);
+        },
+
+        playBeep(success = true) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (success) {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, ctx.currentTime); // High A
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime); // Low A buzzer
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                }
+            } catch (e) {
+                // AudioContext not permitted or supported, fail silently
+            }
+        },
+
+        async submitScan() {
+            const code = this.scanInput.trim();
+            if (!code || this.isLoading) return;
+
+            this.isLoading = true;
+            this.scanMessage = '';
+
+            try {
+                const res = await fetch(this.scanUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    if (data.type === 'matched') {
+                        this.playBeep(true);
+                        this.scanMessageType = 'matched';
+                        this.scanMessage = data.message;
+                    } else if (data.type === 'anomaly') {
+                        this.playBeep(false);
+                        this.scanMessageType = 'anomaly';
+                        this.scanMessage = data.message;
+                    }
+
+                    if (data.stats) {
+                        this.stats = data.stats;
+                    }
+
+                    // Update row jika ada di halaman saat ini
+                    if (data.item && data.item.id) {
+                        const row = document.getElementById('row-item-' + data.item.id);
+                        if (row) {
+                            row.classList.add('bg-emerald-500/20');
+                            setTimeout(() => row.classList.remove('bg-emerald-500/20'), 3000);
+                        }
+                    }
+
+                    // Kosongkan input dan refocus untuk scan berikutnya
+                    this.scanInput = '';
+                    if (this.$refs.scanInputRef) {
+                        this.$refs.scanInputRef.focus();
+                    }
+                } else {
+                    this.playBeep(false);
+                    this.scanMessageType = data.not_found ? 'not_found' : 'error';
+                    this.scanMessage = data.message || 'Gagal memproses barcode.';
+                    this.scanInput = '';
+                    if (this.$refs.scanInputRef) {
+                        this.$refs.scanInputRef.focus();
+                    }
+                }
+            } catch (err) {
+                this.playBeep(false);
+                this.scanMessageType = 'error';
+                this.scanMessage = 'Terjadi kesalahan jaringan atau server.';
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        quickCheck(regNumber) {
+            this.scanInput = regNumber;
+            this.submitScan();
+        },
+
+        toggleCamera() {
+            if (this.cameraActive) {
+                this.stopCamera();
+            } else {
+                this.startCamera();
+            }
+        },
+
+        startCamera() {
+            this.cameraActive = true;
+            this.$nextTick(() => {
+                if (typeof Html5Qrcode !== 'undefined') {
+                    if (this.html5QrCode) {
+                        try { this.html5QrCode.stop(); } catch(e) {}
+                    }
+                    this.html5QrCode = new Html5Qrcode("stock-opname-scanner");
+                    this.html5QrCode.start(
+                        { facingMode: "environment" },
+                        {
+                            fps: 10,
+                            qrbox: { width: 260, height: 160 }
+                        },
+                        (decodedText) => {
+                            // Berhasil baca barcode dari kamera
+                            this.scanInput = decodedText;
+                            this.submitScan();
+                        },
+                        (errorMessage) => {
+                            // Frame scanning, ignore
+                        }
+                    ).catch(err => {
+                        console.error('Kamera tidak dapat diakses:', err);
+                        alert('Tidak dapat mengakses kamera. Pastikan izin kamera aktif.');
+                        this.cameraActive = false;
+                    });
+                } else {
+                    alert('Library scanner kamera tidak tersedia.');
+                    this.cameraActive = false;
+                }
+            });
+        },
+
+        stopCamera() {
+            if (this.html5QrCode) {
+                this.html5QrCode.stop().then(() => {
+                    this.html5QrCode.clear();
+                }).catch(() => {});
+            }
+            this.cameraActive = false;
+        }
+    };
+}
+</script>
+
 <div class="space-y-6" x-data="stockOpnameApp({
     opnameId: {{ $stockOpname->id }},
     scanUrl: '{{ route('admin.stock-opname.scan', $stockOpname) }}',
@@ -386,181 +563,5 @@
     </div>
 
 </div>
-
-<!-- Alpine & HTML5-QRCode Scanner Controller Script -->
-<script>
-function stockOpnameApp(config) {
-    return {
-        opnameId: config.opnameId,
-        scanUrl: config.scanUrl,
-        csrfToken: config.csrfToken,
-        isCompleted: config.isCompleted,
-        stats: config.initialStats,
-        scanInput: '',
-        isLoading: false,
-        cameraActive: false,
-        html5QrCode: null,
-        scanMessage: '',
-        scanMessageType: '', // 'matched', 'anomaly', 'error', 'not_found'
-        openCompleteModal: false,
-
-        percentMatch() {
-            if (!this.stats.total_system || this.stats.total_system === 0) return 0;
-            return ((this.stats.total_matched / this.stats.total_system) * 100).toFixed(1);
-        },
-
-        playBeep(success = true) {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-
-                if (success) {
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(880, ctx.currentTime); // High A
-                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.15);
-                } else {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(220, ctx.currentTime); // Low A buzzer
-                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.3);
-                }
-            } catch (e) {
-                // AudioContext not permitted or supported, fail silently
-            }
-        },
-
-        async submitScan() {
-            const code = this.scanInput.trim();
-            if (!code || this.isLoading) return;
-
-            this.isLoading = true;
-            this.scanMessage = '';
-
-            try {
-                const res = await fetch(this.scanUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.csrfToken,
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ code: code })
-                });
-
-                const data = await res.json();
-
-                if (res.ok && data.success) {
-                    if (data.type === 'matched') {
-                        this.playBeep(true);
-                        this.scanMessageType = 'matched';
-                        this.scanMessage = data.message;
-                    } else if (data.type === 'anomaly') {
-                        this.playBeep(false);
-                        this.scanMessageType = 'anomaly';
-                        this.scanMessage = data.message;
-                    }
-
-                    if (data.stats) {
-                        this.stats = data.stats;
-                    }
-
-                    // Update row jika ada di halaman saat ini
-                    if (data.item && data.item.id) {
-                        const row = document.getElementById('row-item-' + data.item.id);
-                        if (row) {
-                            row.classList.add('bg-emerald-500/20');
-                            setTimeout(() => row.classList.remove('bg-emerald-500/20'), 3000);
-                        }
-                    }
-
-                    // Kosongkan input dan refocus untuk scan berikutnya
-                    this.scanInput = '';
-                    if (this.$refs.scanInputRef) {
-                        this.$refs.scanInputRef.focus();
-                    }
-                } else {
-                    this.playBeep(false);
-                    this.scanMessageType = data.not_found ? 'not_found' : 'error';
-                    this.scanMessage = data.message || 'Gagal memproses barcode.';
-                    this.scanInput = '';
-                    if (this.$refs.scanInputRef) {
-                        this.$refs.scanInputRef.focus();
-                    }
-                }
-            } catch (err) {
-                this.playBeep(false);
-                this.scanMessageType = 'error';
-                this.scanMessage = 'Terjadi kesalahan jaringan atau server.';
-            } finally {
-                this.isLoading = false;
-            }
-        },
-
-        quickCheck(regNumber) {
-            this.scanInput = regNumber;
-            this.submitScan();
-        },
-
-        toggleCamera() {
-            if (this.cameraActive) {
-                this.stopCamera();
-            } else {
-                this.startCamera();
-            }
-        },
-
-        startCamera() {
-            this.cameraActive = true;
-            this.$nextTick(() => {
-                if (typeof Html5Qrcode !== 'undefined') {
-                    if (this.html5QrCode) {
-                        try { this.html5QrCode.stop(); } catch(e) {}
-                    }
-                    this.html5QrCode = new Html5Qrcode("stock-opname-scanner");
-                    this.html5QrCode.start(
-                        { facingMode: "environment" },
-                        {
-                            fps: 10,
-                            qrbox: { width: 260, height: 160 }
-                        },
-                        (decodedText) => {
-                            // Berhasil baca barcode dari kamera
-                            this.scanInput = decodedText;
-                            this.submitScan();
-                        },
-                        (errorMessage) => {
-                            // Frame scanning, ignore
-                        }
-                    ).catch(err => {
-                        console.error('Kamera tidak dapat diakses:', err);
-                        alert('Tidak dapat mengakses kamera. Pastikan izin kamera aktif.');
-                        this.cameraActive = false;
-                    });
-                } else {
-                    alert('Library scanner kamera tidak tersedia.');
-                    this.cameraActive = false;
-                }
-            });
-        },
-
-        stopCamera() {
-            if (this.html5QrCode) {
-                this.html5QrCode.stop().then(() => {
-                    this.html5QrCode.clear();
-                }).catch(() => {});
-            }
-            this.cameraActive = false;
-        }
-    };
-}
-</script>
 @endsection
 

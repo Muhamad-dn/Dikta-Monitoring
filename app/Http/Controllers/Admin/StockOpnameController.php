@@ -83,7 +83,7 @@ class StockOpnameController extends Controller
     {
         $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
         if ($activeOpname) {
-            return redirect()->route('admin.stock-opname.index')
+            return redirect()->route('admin.stock-opname.show', $activeOpname)
                 ->with('info', "Melanjutkan sesi Stock Opname aktif: {$activeOpname->title}");
         }
 
@@ -145,7 +145,7 @@ class StockOpnameController extends Controller
             $opname->recalculateTotals();
             DB::commit();
 
-            return redirect()->route('admin.stock-opname.index')
+            return redirect()->route('admin.stock-opname.show', $opname)
                 ->with('success', "Sesi {$opname->title} berhasil dimulai! Tabel scan barcode siap digunakan.");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -167,8 +167,8 @@ class StockOpnameController extends Controller
         // Cek jika sudah ada sesi stock opname yang sedang aktif
         $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
         if ($activeOpname) {
-            return redirect()->route('admin.stock-opname.index')
-                ->with('info', "Sesi Stock Opname {$activeOpname->title} sudah sedang berjalan. Silakan lanjutkan proses scan pada tabel di bawah.");
+            return redirect()->route('admin.stock-opname.show', $activeOpname)
+                ->with('info', "Sesi Stock Opname {$activeOpname->title} sedang berjalan. Silakan lanjutkan cek fisik pada tabel di halaman ini.");
         }
 
         $month = (int)$request->input('period_month', date('n'));
@@ -246,8 +246,8 @@ class StockOpnameController extends Controller
             $opname->recalculateTotals();
             DB::commit();
 
-            return redirect()->route('admin.stock-opname.index')
-                ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Tabel scan barcode telah siap di bawah.");
+            return redirect()->route('admin.stock-opname.show', $opname)
+                ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Silakan lakukan scan barcode fisik perangkat pada tabel di bawah.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal membuat sesi stock opname: ' . $e->getMessage())->withInput();
@@ -475,7 +475,7 @@ class StockOpnameController extends Controller
         ]);
 
         return redirect()->route('admin.stock-opname.index')
-            ->with('success', "Stock Opname {$stockOpname->title} telah selesai! Hasil audit telah dicatat di tabel riwayat di bawah dan dapat dicetak ke Excel.");
+            ->with('success', "Stock Opname {$stockOpname->title} telah berhasil diselesaikan! Laporan berita acara telah dicatat pada Tabel Arsip di bawah dan siap dicetak ke Excel.");
     }
 
     public function export(StockOpname $stockOpname): StreamedResponse
