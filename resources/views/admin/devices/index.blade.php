@@ -5,7 +5,13 @@
 @section('page_subtitle', 'Daftar seluruh perangkat jaringan, status ketersediaan, dan posisi terkini')
 
 @section('content')
-<div class="space-y-5">
+<div class="space-y-5"
+     x-data="deviceIndexApp({
+         initialQuery: @json(request('search', '')),
+         stockStatus: @json(request('stock_status', '')),
+         area: @json(request('area', '')),
+         devices: {!! json_encode($devicesData ?? []) !!}
+     })">
 
     <!-- Top Action Bar & Filter -->
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
@@ -28,11 +34,6 @@
 
         <!-- Filter Form -->
         <form x-ref="filterForm" 
-              x-data="deviceSearchAutocomplete({
-                  initialQuery: @json(request('search', '')),
-                  stockStatus: @json(request('stock_status', '')),
-                  area: @json(request('area', ''))
-              })"
               action="{{ route('admin.devices.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
             
             <div class="lg:col-span-2 relative">
@@ -41,7 +42,7 @@
                            name="search" 
                            x-model="query"
                            @input="onInput()"
-                           @focus="if(query.trim().length >= 1) { isOpen = true; if(suggestions.length === 0) onInput(); }"
+                           @focus="if((query || '').trim().length >= 1) { isOpen = true; if(suggestions.length === 0) onInput(); }"
                            @keydown.arrow-down.prevent="onArrowDown()"
                            @keydown.arrow-up.prevent="onArrowUp()"
                            @keydown.enter="onEnter($event)"
@@ -73,7 +74,7 @@
                 </div>
 
                 <!-- Autocomplete Dropdown Popover (Muncul saat mengetik 1 huruf atau lebih) -->
-                <div x-show="isOpen && query.trim().length >= 1" 
+                <div x-show="isOpen && (query || '').trim().length >= 1" 
                      x-transition:enter="transition ease-out duration-150"
                      x-transition:enter-start="opacity-0 translate-y-1"
                      x-transition:enter-end="opacity-100 translate-y-0"
@@ -207,6 +208,15 @@
                 @endif
             </div>
         </form>
+
+        <!-- Live Search Counter on Current Page -->
+        <div x-show="query" class="flex items-center gap-1.5 text-xs text-brand-800 bg-brand-50 px-3.5 py-2 rounded-xl border border-brand-200" x-cloak>
+            <span>Menampilkan di halaman ini:</span>
+            <strong x-text="matchCount"></strong>
+            <span>dari {{ $devices->count() }} unit</span>
+            <span class="text-slate-400 mx-1">&bull;</span>
+            <span class="text-[11px] text-slate-600">Tekan Enter atau klik Filter Data untuk mencari "<span x-text="query"></span>" di seluruh database ({{ $devices->total() }} unit)</span>
+        </div>
     </div>
 
     <!-- Table of Devices -->
@@ -225,7 +235,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($devices as $device)
-                        <tr id="device-row-{{ $device->id }}" class="hover:bg-slate-50/80 transition-colors">
+                        <tr id="device-row-{{ $device->id }}" x-show="matchesSearch({{ $device->id }})" class="hover:bg-slate-50/80 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="font-mono font-bold text-sm text-slate-900">{{ $device->registration_number }}</div>
                             </td>
@@ -306,6 +316,18 @@
                             </td>
                         </tr>
                     @endforelse
+
+                    <!-- Empty state row untuk live search client-side pada halaman ini -->
+                    <tr x-show="isSearchEmpty" x-cloak>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                            <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-base font-bold">🔍</div>
+                            <p class="font-bold text-slate-700 text-xs">Tidak ada perangkat di halaman ini yang cocok dengan "<span class="text-slate-900" x-text="query"></span>"</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Gunakan tombol di bawah atau tekan Enter untuk mencari di seluruh database</p>
+                            <button type="button" @click="$refs.filterForm.submit()" class="mt-3 px-3.5 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-xl transition-colors">
+                                Cari di Seluruh Database &rarr;
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -597,20 +619,55 @@
         }
     });
 
-    function deviceSearchAutocomplete(config = {}) {
+    function deviceIndexApp(config = {}) {
         return {
             query: config.initialQuery || '',
             stockStatus: config.stockStatus || '',
             area: config.area || '',
+            devicesList: config.devices || [],
             suggestions: [],
             isLoading: false,
             isOpen: false,
             selectedIndex: -1,
             debounceTimeout: null,
 
+            matchesSearch(id) {
+                if (!this.query || this.query.trim() === '') return true;
+                const q = this.query.toLowerCase().trim();
+                const dev = this.devicesList.find(d => d.id === id);
+                if (!dev) return true;
+                return (
+                    (dev.searchStr && dev.searchStr.includes(q)) ||
+                    (dev.registration_number && dev.registration_number.toLowerCase().includes(q)) ||
+                    (dev.name && dev.name.toLowerCase().includes(q)) ||
+                    (dev.nojar && dev.nojar.toLowerCase().includes(q)) ||
+                    (dev.area && dev.area.toLowerCase().includes(q)) ||
+                    (dev.serial_number && dev.serial_number.toLowerCase().includes(q))
+                );
+            },
+
+            get matchCount() {
+                if (!this.query || this.query.trim() === '') return this.devicesList.length;
+                const q = this.query.toLowerCase().trim();
+                return this.devicesList.filter(dev => {
+                    return (
+                        (dev.searchStr && dev.searchStr.includes(q)) ||
+                        (dev.registration_number && dev.registration_number.toLowerCase().includes(q)) ||
+                        (dev.name && dev.name.toLowerCase().includes(q)) ||
+                        (dev.nojar && dev.nojar.toLowerCase().includes(q)) ||
+                        (dev.area && dev.area.toLowerCase().includes(q)) ||
+                        (dev.serial_number && dev.serial_number.toLowerCase().includes(q))
+                    );
+                }).length;
+            },
+
+            get isSearchEmpty() {
+                return this.devicesList.length > 0 && this.query && this.query.trim() !== '' && this.matchCount === 0;
+            },
+
             onInput() {
                 clearTimeout(this.debounceTimeout);
-                const q = this.query.trim();
+                const q = (this.query || '').trim();
                 if (q.length < 1) {
                     this.suggestions = [];
                     this.isOpen = false;
@@ -642,7 +699,7 @@
                     if (!res.ok) throw new Error('Network error');
                     const data = await res.json();
                     
-                    if (this.query.trim().toLowerCase() === q.toLowerCase()) {
+                    if ((this.query || '').trim().toLowerCase() === q.toLowerCase()) {
                         this.suggestions = Array.isArray(data) ? data : [];
                         this.isOpen = true;
                     }

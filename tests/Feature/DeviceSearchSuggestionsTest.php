@@ -177,8 +177,62 @@ class DeviceSearchSuggestionsTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Cari berdasarkan Nomor Registrasi, NOJAR, Nama Perangkat, atau Area');
         $response->assertSee('placeholder="Cari No. Registrasi, NOJAR, Nama Perangkat, atau Area..."', false);
-        $response->assertSee('deviceSearchAutocomplete');
+        $response->assertSee('deviceIndexApp');
         $response->assertSee('pilihan perangkat ditemukan');
+    }
+
+    public function test_search_is_strictly_case_insensitive_for_both_lowercase_and_uppercase()
+    {
+        $admin = User::where('role', 'admin')->first();
+
+        Device::create([
+            'registration_number' => 'B2WS0200137MA8888',
+            'serial_number' => 'SN-CAP-8888',
+            'name' => 'Bivocom Industrial Router Dual SIM',
+            'brand' => 'Bivocom',
+            'type' => 'Router',
+            'area' => 'BWA',
+            'nojar' => 'NJR-CAPITAL-888',
+            'stock_status' => 'tersedia_hb_jkt',
+            'current_location' => 'Gudang HB JKT',
+            'condition' => 'baru',
+        ]);
+
+        // 1. Cek huruf kecil semua: "b2ws"
+        $resLowerReg = $this->actingAs($admin)->getJson(route('admin.devices.search-suggestions', ['q' => 'b2ws']));
+        $resLowerReg->assertStatus(200);
+        $this->assertNotEmpty($resLowerReg->json());
+        $this->assertEquals('B2WS0200137MA8888', $resLowerReg->json()[0]['registration_number']);
+
+        // 2. Cek huruf kapital semua: "B2WS"
+        $resUpperReg = $this->actingAs($admin)->getJson(route('admin.devices.search-suggestions', ['q' => 'B2WS']));
+        $resUpperReg->assertStatus(200);
+        $this->assertNotEmpty($resUpperReg->json());
+        $this->assertEquals('B2WS0200137MA8888', $resUpperReg->json()[0]['registration_number']);
+
+        // 3. Cek area huruf kecil: "bwa"
+        $resLowerArea = $this->actingAs($admin)->getJson(route('admin.devices.search-suggestions', ['q' => 'bwa']));
+        $resLowerArea->assertStatus(200);
+        $this->assertNotEmpty($resLowerArea->json());
+        $areas = array_column($resLowerArea->json(), 'area');
+        $this->assertContains('BWA', $areas);
+
+        // 4. Cek area huruf kapital: "BWA"
+        $resUpperArea = $this->actingAs($admin)->getJson(route('admin.devices.search-suggestions', ['q' => 'BWA']));
+        $resUpperArea->assertStatus(200);
+        $this->assertNotEmpty($resUpperArea->json());
+        $areasUpper = array_column($resUpperArea->json(), 'area');
+        $this->assertContains('BWA', $areasUpper);
+
+        // 5. Cek nama perangkat huruf kecil di halaman index: "bivocom"
+        $resIndexLower = $this->actingAs($admin)->get(route('admin.devices.index', ['search' => 'bivocom']));
+        $resIndexLower->assertStatus(200);
+        $resIndexLower->assertSee('B2WS0200137MA8888');
+
+        // 6. Cek nama perangkat huruf besar di halaman index: "BIVOCOM"
+        $resIndexUpper = $this->actingAs($admin)->get(route('admin.devices.index', ['search' => 'BIVOCOM']));
+        $resIndexUpper->assertStatus(200);
+        $resIndexUpper->assertSee('B2WS0200137MA8888');
     }
 }
 

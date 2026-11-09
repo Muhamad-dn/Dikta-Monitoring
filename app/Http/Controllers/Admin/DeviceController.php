@@ -20,17 +20,18 @@ class DeviceController extends Controller
         $query = Device::with(['currentTechnician', 'activeWorkOrder'])->withCount('evidence')->latest();
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('registration_number', 'like', "%{$search}%")
-                  ->orWhere('kode_spek', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%")
-                  ->orWhere('model', 'like', "%{$search}%")
-                  ->orWhere('nojar', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('area', 'like', "%{$search}%");
+            $search = trim($request->search);
+            $searchLower = strtolower($search);
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(registration_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(kode_spek) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(model) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"]);
             });
         }
 
@@ -64,7 +65,23 @@ class DeviceController extends Controller
 
         $devices = $query->paginate(10)->withQueryString();
 
-        return view('admin.devices.index', compact('devices'));
+        $devicesData = $devices->map(function ($d) {
+            return [
+                'id' => $d->id,
+                'registration_number' => $d->registration_number ?? '',
+                'serial_number' => $d->serial_number ?? '',
+                'name' => $d->name ?? '',
+                'brand' => $d->brand ?? '',
+                'area' => $d->area ?? '',
+                'nojar' => $d->nojar ?? '',
+                'customer_name' => $d->customer_name ?? '',
+                'stock_status' => $d->stock_status ?? '',
+                'current_location' => $d->current_location ?? '',
+                'searchStr' => strtolower(' ' . ($d->registration_number ?? '') . ' ' . ($d->serial_number ?? '') . ' ' . ($d->name ?? '') . ' ' . ($d->brand ?? '') . ' ' . ($d->area ?? '') . ' ' . ($d->nojar ?? '') . ' ' . ($d->customer_name ?? '') . ' ' . ($d->current_location ?? '')),
+            ];
+        })->values();
+
+        return view('admin.devices.index', compact('devices', 'devicesData'));
     }
 
     public function searchSuggestions(Request $request)
@@ -92,32 +109,31 @@ class DeviceController extends Controller
             $query->where('area', $request->area);
         }
 
-        // Pencarian multi-kolom: no registrasi, nojar, nama perangkat, area, dll.
-        $query->where(function ($builder) use ($q) {
-            $builder->where('registration_number', 'like', "%{$q}%")
-                ->orWhere('nojar', 'like', "%{$q}%")
-                ->orWhere('name', 'like', "%{$q}%")
-                ->orWhere('area', 'like', "%{$q}%")
-                ->orWhere('serial_number', 'like', "%{$q}%")
-                ->orWhere('kode_spek', 'like', "%{$q}%")
-                ->orWhere('brand', 'like', "%{$q}%")
-                ->orWhere('customer_name', 'like', "%{$q}%");
-        });
+        $qLower = strtolower($q);
 
-        $upperQ = strtoupper($q);
-        $likeQ = "{$q}%";
+        // Pencarian multi-kolom 100% case-insensitive (kapital maupun huruf kecil)
+        $query->where(function ($builder) use ($qLower) {
+            $builder->whereRaw('LOWER(registration_number) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(name) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(area) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(kode_spek) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$qLower}%"])
+                ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$qLower}%"]);
+        });
 
         $devices = $query->orderByRaw("
             CASE 
-                WHEN UPPER(registration_number) = ? THEN 1
-                WHEN UPPER(nojar) = ? THEN 2
-                WHEN UPPER(registration_number) LIKE ? THEN 3
-                WHEN UPPER(nojar) LIKE ? THEN 4
-                WHEN UPPER(name) LIKE ? THEN 5
-                WHEN UPPER(area) = ? THEN 6
+                WHEN LOWER(registration_number) = ? THEN 1
+                WHEN LOWER(nojar) = ? THEN 2
+                WHEN LOWER(registration_number) LIKE ? THEN 3
+                WHEN LOWER(nojar) LIKE ? THEN 4
+                WHEN LOWER(name) LIKE ? THEN 5
+                WHEN LOWER(area) = ? THEN 6
                 ELSE 7
             END, id DESC
-        ", [$upperQ, $upperQ, $likeQ, $likeQ, $likeQ, $upperQ])
+        ", [$qLower, $qLower, "{$qLower}%", "{$qLower}%", "{$qLower}%", $qLower])
         ->take(8)
         ->get();
 
@@ -698,14 +714,15 @@ class DeviceController extends Controller
         $query = Device::with(['currentTechnician'])->latest();
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('registration_number', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%")
-                  ->orWhere('area', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+            $searchLower = strtolower(trim($request->search));
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(registration_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$searchLower}%"]);
             });
         }
 
@@ -887,18 +904,21 @@ class DeviceController extends Controller
             }
             $searchCandidates = array_unique(array_filter($searchCandidates));
 
-            $warehouseQuery->where(function($q) use ($search, $searchCandidates) {
+            $searchLower = strtolower($search);
+
+            $warehouseQuery->where(function($q) use ($searchLower, $searchCandidates) {
                 foreach ($searchCandidates as $cand) {
-                    $q->orWhere('registration_number', 'like', "%{$cand}%")
-                      ->orWhere('kode_spek', 'like', "%{$cand}%")
-                      ->orWhere('serial_number', 'like', "%{$cand}%");
+                    $candLower = strtolower($cand);
+                    $q->orWhereRaw('LOWER(registration_number) LIKE ?', ["%{$candLower}%"])
+                      ->orWhereRaw('LOWER(kode_spek) LIKE ?', ["%{$candLower}%"])
+                      ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$candLower}%"]);
                 }
-                $q->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('brand', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('nojar', 'like', "%{$search}%")
-                  ->orWhere('area', 'like', "%{$search}%");
+                $q->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(brand) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(address) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"]);
             });
         }
         $devicesInWarehouse = $warehouseQuery->latest('id')->paginate(10)->withQueryString();

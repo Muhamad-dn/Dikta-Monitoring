@@ -67,17 +67,18 @@ class DashboardController extends Controller
         }
 
         if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('registration_number', 'like', "%{$search}%")
-                  ->orWhere('kode_spek', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('nojar', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('area', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%")
-                  ->orWhereHas('activeWorkOrder', function ($woQ) use ($search) {
-                      $woQ->where('nojar', 'like', "%{$search}%")
-                          ->orWhere('customer_name', 'like', "%{$search}%");
+            $searchLower = strtolower(trim($search));
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(registration_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(kode_spek) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereHas('activeWorkOrder', function ($woQ) use ($searchLower) {
+                      $woQ->whereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                          ->orWhereRaw('LOWER(customer_name) LIKE ?', ["%{$searchLower}%"]);
                   });
             });
         }

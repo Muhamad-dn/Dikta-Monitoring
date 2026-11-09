@@ -25,16 +25,18 @@ class DeviceTrackingController extends Controller
             $query->where('stock_status', $request->stock_status);
         }
 
-        // Pencarian multi-kriteria: nomor registrasi, serial number, nama, atau lokasi
+        // Pencarian multi-kriteria: nomor registrasi, serial number, nama, nojar, area, atau lokasi
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('registration_number', 'like', "%{$search}%")
-                  ->orWhere('serial_number', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('current_location', 'like', "%{$search}%")
-                  ->orWhereHas('currentTechnician', function ($tq) use ($search) {
-                      $tq->where('name', 'like', "%{$search}%");
+            $searchLower = strtolower(trim($request->search));
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(registration_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(serial_number) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(current_location) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereHas('currentTechnician', function ($tq) use ($searchLower) {
+                      $tq->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]);
                   });
             });
         }

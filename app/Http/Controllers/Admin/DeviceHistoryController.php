@@ -23,15 +23,17 @@ class DeviceHistoryController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('action', 'like', "%{$search}%")
-                  ->orWhere('from_location', 'like', "%{$search}%")
-                  ->orWhere('to_location', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%")
-                  ->orWhereHas('device', function ($dq) use ($search) {
-                      $dq->where('registration_number', 'like', "%{$search}%")
-                         ->orWhere('name', 'like', "%{$search}%");
+            $searchLower = strtolower(trim($request->search));
+            $query->where(function ($q) use ($searchLower) {
+                $q->whereRaw('LOWER(action) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(from_location) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(to_location) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(notes) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereHas('device', function ($dq) use ($searchLower) {
+                      $dq->whereRaw('LOWER(registration_number) LIKE ?', ["%{$searchLower}%"])
+                         ->orWhereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                         ->orWhereRaw('LOWER(nojar) LIKE ?', ["%{$searchLower}%"])
+                         ->orWhereRaw('LOWER(area) LIKE ?', ["%{$searchLower}%"]);
                   });
             });
         }
