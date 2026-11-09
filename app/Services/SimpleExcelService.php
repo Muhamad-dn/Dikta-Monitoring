@@ -559,4 +559,263 @@ class SimpleExcelService
 
         return $content;
     }
+
+    /**
+     * Generate styled Stock Opname report as native Excel (.xlsx) file matching the web table.
+     */
+    public static function exportStockOpnameXlsx(\App\Models\StockOpname $stockOpname): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'opname_xlsx_');
+        $zip = new ZipArchive();
+        if ($zip->open($tempFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new Exception("Gagal membuat file Excel Stock Opname.");
+        }
+
+        $stockOpname->loadMissing(['conductor', 'items.device', 'items.scanner']);
+
+        $adminName = $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator');
+        $periodText = $stockOpname->month_name . ' ' . $stockOpname->period_year;
+        $statusText = $stockOpname->status === 'completed' ? 'Selesai' : 'Sedang Berjalan';
+        $completedDate = $stockOpname->completed_at ? $stockOpname->completed_at->format('d/m/Y H:i') : '-';
+
+        $stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' .
+            '<fonts count="9">' .
+            '<font><sz val="10"/><color rgb="FF1E293B"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10"/><color rgb="FF1E293B"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10.5"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="14"/><color rgb="FF0F172A"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10"/><color rgb="FF065F46"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10"/><color rgb="FF991B1B"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10"/><color rgb="FF92400E"/><name val="Calibri"/></font>' .
+            '<font><b/><sz val="10"/><color rgb="FF6B21A8"/><name val="Calibri"/></font>' .
+            '<font><i/><sz val="9.5"/><color rgb="FF64748B"/><name val="Calibri"/></font>' .
+            '</fonts>' .
+            '<fills count="12">' .
+            '<fill><patternFill patternType="none"/></fill>' .
+            '<fill><patternFill patternType="gray125"/></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FF1E293B"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFF1F5F9"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFD1FAE5"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFFEE2E2"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFF3E8FF"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFECFDF5"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFFEF2F2"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFFFFBEB"/></patternFill></fill>' .
+            '<fill><patternFill patternType="solid"><fgColor rgb="FFF8FAFC"/></patternFill></fill>' .
+            '</fills>' .
+            '<borders count="2">' .
+            '<border><left/><right/><top/><bottom/><diagonal/></border>' .
+            '<border>' .
+            '<left style="thin"><color rgb="FFCBD5E1"/></left>' .
+            '<right style="thin"><color rgb="FFCBD5E1"/></right>' .
+            '<top style="thin"><color rgb="FFCBD5E1"/></top>' .
+            '<bottom style="thin"><color rgb="FFCBD5E1"/></bottom>' .
+            '</border>' .
+            '</borders>' .
+            '<cellStyleXfs count="1">' .
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>' .
+            '</cellStyleXfs>' .
+            '<cellXfs count="18">' .
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' .
+            '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>' .
+            '<xf numFmtId="0" fontId="8" fillId="0" borderId="0" xfId="0" applyFont="1"/>' .
+            '<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment horizontal="left" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="4" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="5" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="6" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="7" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="1" fillId="11" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="4" fillId="8" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="5" fillId="9" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '<xf numFmtId="0" fontId="6" fillId="10" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment horizontal="center" vertical="center"/></xf>' .
+            '</cellXfs>' .
+            '</styleSheet>';
+
+        $rowsXml = '';
+
+        // Row 1: Document Title
+        $rowsXml .= '<row r="1" ht="26" customHeight="1">';
+        $rowsXml .= '<c r="A1" s="1" t="inlineStr"><is><t>' . htmlspecialchars('PT DIKTA - LAPORAN BERITA ACARA STOCK OPNAME', ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 2: Subtitle
+        $rowsXml .= '<row r="2" ht="18" customHeight="1">';
+        $rowsXml .= '<c r="A2" s="2" t="inlineStr"><is><t>' . htmlspecialchars('Audit Fisik Stok Gudang Berkala vs Catatan Sistem PT DIKTA', ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 3: Blank separator
+        $rowsXml .= '<row r="3"/>';
+
+        // Row 4: Meta Information
+        $rowsXml .= '<row r="4" ht="20" customHeight="1">';
+        $rowsXml .= '<c r="A4" s="3" t="inlineStr"><is><t>KODE SESI</t></is></c>';
+        $rowsXml .= '<c r="B4" s="4" t="inlineStr"><is><t>' . htmlspecialchars($stockOpname->opname_code, ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '<c r="D4" s="3" t="inlineStr"><is><t>STATUS SESI</t></is></c>';
+        $rowsXml .= '<c r="E4" s="4" t="inlineStr"><is><t>' . htmlspecialchars(strtoupper($statusText), ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 5: Periode & Lokasi Gudang
+        $rowsXml .= '<row r="5" ht="20" customHeight="1">';
+        $rowsXml .= '<c r="A5" s="3" t="inlineStr"><is><t>PERIODE</t></is></c>';
+        $rowsXml .= '<c r="B5" s="4" t="inlineStr"><is><t>' . htmlspecialchars($periodText, ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '<c r="D5" s="3" t="inlineStr"><is><t>LOKASI GUDANG</t></is></c>';
+        $rowsXml .= '<c r="E5" s="4" t="inlineStr"><is><t>' . htmlspecialchars($stockOpname->location_label, ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 6: Admin Pemeriksa & Tanggal Selesai
+        $rowsXml .= '<row r="6" ht="20" customHeight="1">';
+        $rowsXml .= '<c r="A6" s="3" t="inlineStr"><is><t>ADMIN PEMERIKSA</t></is></c>';
+        $rowsXml .= '<c r="B6" s="4" t="inlineStr"><is><t>' . htmlspecialchars($adminName, ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '<c r="D6" s="3" t="inlineStr"><is><t>TANGGAL SELESAI</t></is></c>';
+        $rowsXml .= '<c r="E6" s="4" t="inlineStr"><is><t>' . htmlspecialchars($completedDate, ENT_XML1, 'UTF-8') . '</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 7: Blank separator
+        $rowsXml .= '<row r="7"/>';
+
+        // Row 8: Summary Totals Header
+        $rowsXml .= '<row r="8" ht="20" customHeight="1">';
+        $rowsXml .= '<c r="A8" s="3" t="inlineStr"><is><t>TOTAL TARGET SISTEM</t></is></c>';
+        $rowsXml .= '<c r="C8" s="3" t="inlineStr"><is><t>FISIK SESUAI (MATCH)</t></is></c>';
+        $rowsXml .= '<c r="E8" s="3" t="inlineStr"><is><t>BELUM DITEMUKAN (MISSING)</t></is></c>';
+        $rowsXml .= '<c r="G8" s="3" t="inlineStr"><is><t>ANOMALI / SALAH LOKASI</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 9: Summary Totals Values
+        $rowsXml .= '<row r="9" ht="22" customHeight="1">';
+        $rowsXml .= '<c r="A9" s="14" t="inlineStr"><is><t>' . (string)$stockOpname->total_system . ' Unit</t></is></c>';
+        $rowsXml .= '<c r="C9" s="15" t="inlineStr"><is><t>' . (string)$stockOpname->total_matched . ' Unit</t></is></c>';
+        $rowsXml .= '<c r="E9" s="16" t="inlineStr"><is><t>' . (string)$stockOpname->total_missing . ' Unit</t></is></c>';
+        $rowsXml .= '<c r="G9" s="17" t="inlineStr"><is><t>' . (string)$stockOpname->total_surplus . ' Unit</t></is></c>';
+        $rowsXml .= '</row>';
+
+        // Row 10: Blank separator
+        $rowsXml .= '<row r="10"/>';
+
+        // Row 11: Main Table Headers (Exact columns from user request and website)
+        $headers = [
+            'A' => ['title' => 'NO', 'style' => 5],
+            'B' => ['title' => 'NOMOR REGISTRASI', 'style' => 5],
+            'C' => ['title' => 'NAMA PERANGKAT', 'style' => 6],
+            'D' => ['title' => 'AREA', 'style' => 5],
+            'E' => ['title' => 'STATUS DI SISTEM', 'style' => 6],
+            'F' => ['title' => 'HASIL CEK FISIK', 'style' => 5],
+            'G' => ['title' => 'WAKTU SCAN', 'style' => 5],
+            'H' => ['title' => 'CATATAN / KETERANGAN', 'style' => 6],
+        ];
+
+        $rowsXml .= '<row r="11" ht="26" customHeight="1">';
+        foreach ($headers as $colLetter => $h) {
+            $rowsXml .= '<c r="' . $colLetter . '11" s="' . $h['style'] . '" t="inlineStr"><is><t>' . htmlspecialchars($h['title'], ENT_XML1, 'UTF-8') . '</t></is></c>';
+        }
+        $rowsXml .= '</row>';
+
+        // Row 12+: Items
+        $rowNum = 12;
+        $no = 1;
+        foreach ($stockOpname->items as $item) {
+            $statusLabel = match ($item->physical_status) {
+                'matched' => 'SESUAI (MATCH)',
+                'wrong_location' => 'ANOMALI (SALAH POSISI)',
+                'surplus_unregistered' => 'TAK TERDAFTAR',
+                default => 'BELUM DITEMUKAN (MISSING)',
+            };
+
+            $statusStyle = match ($item->physical_status) {
+                'matched' => 10,
+                'wrong_location' => 12,
+                'surplus_unregistered' => 13,
+                default => 11,
+            };
+
+            $sysStatus = ucwords(str_replace('_', ' ', $item->system_status ?? 'gudang'));
+            if ($item->system_location) {
+                $sysStatus .= ' (' . $item->system_location . ')';
+            }
+
+            $scanTime = $item->scanned_at ? $item->scanned_at->format('d/m/Y H:i:s') : '-';
+            $notes = $item->notes ?: '-';
+
+            $rowsXml .= '<row r="' . $rowNum . '" ht="20" customHeight="1">';
+            $rowsXml .= '<c r="A' . $rowNum . '" s="8" t="inlineStr"><is><t>' . $no++ . '</t></is></c>';
+            $rowsXml .= '<c r="B' . $rowNum . '" s="9" t="inlineStr"><is><t>' . htmlspecialchars($item->registration_number, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="C' . $rowNum . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars($item->device_name, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="D' . $rowNum . '" s="8" t="inlineStr"><is><t>' . htmlspecialchars($item->area ?? '-', ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="E' . $rowNum . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars($sysStatus, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="F' . $rowNum . '" s="' . $statusStyle . '" t="inlineStr"><is><t>' . htmlspecialchars($statusLabel, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="G' . $rowNum . '" s="8" t="inlineStr"><is><t>' . htmlspecialchars($scanTime, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '<c r="H' . $rowNum . '" s="7" t="inlineStr"><is><t>' . htmlspecialchars($notes, ENT_XML1, 'UTF-8') . '</t></is></c>';
+            $rowsXml .= '</row>';
+
+            $rowNum++;
+        }
+
+        $sheetDataXml = '<sheetData>' . $rowsXml . '</sheetData>';
+
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' .
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' .
+            '<Default Extension="xml" ContentType="application/xml"/>' .
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' .
+            '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' .
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' .
+            '</Types>';
+
+        $rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' .
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' .
+            '</Relationships>';
+
+        $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' .
+            '<sheets><sheet name="Stock Opname" sheetId="1" r:id="rId1"/></sheets>' .
+            '</workbook>';
+
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' .
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' .
+            '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' .
+            '</Relationships>';
+
+        $worksheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' .
+            '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' .
+            '<sheetViews>' .
+            '<sheetView tabSelected="1" workbookViewId="0">' .
+            '<pane ySplit="11" topLeftCell="A12" activePane="bottomLeft" state="frozen"/>' .
+            '</sheetView>' .
+            '</sheetViews>' .
+            '<cols>' .
+            '<col min="1" max="1" width="6" customWidth="1"/>' .
+            '<col min="2" max="2" width="26" customWidth="1"/>' .
+            '<col min="3" max="3" width="42" customWidth="1"/>' .
+            '<col min="4" max="4" width="14" customWidth="1"/>' .
+            '<col min="5" max="5" width="28" customWidth="1"/>' .
+            '<col min="6" max="6" width="26" customWidth="1"/>' .
+            '<col min="7" max="7" width="22" customWidth="1"/>' .
+            '<col min="8" max="8" width="28" customWidth="1"/>' .
+            '</cols>' .
+            $sheetDataXml .
+            '</worksheet>';
+
+        $zip->addFromString('[Content_Types].xml', $contentTypes);
+        $zip->addFromString('_rels/.rels', $rootRels);
+        $zip->addFromString('xl/workbook.xml', $workbook);
+        $zip->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+        $zip->addFromString('xl/styles.xml', $stylesXml);
+        $zip->addFromString('xl/worksheets/sheet1.xml', $worksheet);
+        $zip->close();
+
+        $content = file_get_contents($tempFile);
+        @unlink($tempFile);
+
+        return $content;
+    }
 }

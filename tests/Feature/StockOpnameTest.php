@@ -192,10 +192,24 @@ class StockOpnameTest extends TestCase
         $printResponse->assertStatus(200);
         $printResponse->assertSee('BERITA ACARA STOCK OPNAME');
 
-        // Export CSV
+        // Export Excel (.xlsx default)
         $exportResponse = $this->actingAs($this->admin)->get(route('admin.stock-opname.export', $opname));
         $exportResponse->assertStatus(200);
-        $this->assertStringContainsString('text/csv', $exportResponse->headers->get('Content-Type'));
+        $this->assertStringContainsString('spreadsheetml', $exportResponse->headers->get('Content-Type'));
+
+        // Verify XLSX is valid and parseable
+        $tempXlsx = tempnam(sys_get_temp_dir(), 'test_exp_') . '.xlsx';
+        file_put_contents($tempXlsx, $exportResponse->getContent());
+        $this->assertFileExists($tempXlsx);
+        $this->assertGreaterThan(1000, filesize($tempXlsx));
+        $parsed = \App\Services\SimpleExcelService::parseXlsx($tempXlsx);
+        $this->assertNotEmpty($parsed);
+        @unlink($tempXlsx);
+
+        // Export CSV (?format=csv)
+        $csvResponse = $this->actingAs($this->admin)->get(route('admin.stock-opname.export', [$opname, 'format' => 'csv']));
+        $csvResponse->assertStatus(200);
+        $this->assertStringContainsString('text/csv', $csvResponse->headers->get('Content-Type'));
     }
 }
 

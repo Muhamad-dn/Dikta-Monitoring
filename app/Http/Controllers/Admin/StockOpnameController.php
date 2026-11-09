@@ -7,6 +7,7 @@ use App\Models\Device;
 use App\Models\DeviceHistory;
 use App\Models\StockOpname;
 use App\Models\StockOpnameItem;
+use App\Services\SimpleExcelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -482,81 +483,98 @@ class StockOpnameController extends Controller
             ->with('success', "Stock Opname {$stockOpname->title} telah berhasil diselesaikan! Laporan berita acara telah dicatat pada Tabel Arsip di bawah dan siap dicetak ke Excel.");
     }
 
-    public function export(StockOpname $stockOpname): StreamedResponse
+    public function export(Request $request, StockOpname $stockOpname)
     {
-        $fileName = 'Stock_Opname_' . Str::slug($stockOpname->title) . '_' . date('Ymd_His') . '.csv';
+        $stockOpname->load(['conductor', 'items.device', 'items.scanner']);
 
-        $stockOpname->load(['items.device', 'items.scanner']);
+        // Jika user secara spesifik meminta format CSV (?format=csv)
+        if ($request->query('format') === 'csv') {
+            $fileName = 'Stock_Opname_' . Str::slug($stockOpname->title ?: 'Stock_Opname') . '_' . date('Ymd_His') . '.csv';
 
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
-            'Pragma' => 'no-cache',
-            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires' => '0',
-        ];
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+                'Pragma' => 'no-cache',
+                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                'Expires' => '0',
+            ];
 
-        $callback = function () use ($stockOpname) {
-            $handle = fopen('php://output', 'w');
-            // Write UTF-8 BOM so Excel opens indonesian characters properly
-            fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            $callback = function () use ($stockOpname) {
+                $handle = fopen('php://output', 'w');
+                // UTF-8 BOM agar Excel membaca karakter khusus dengan benar
+                fprintf($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // Header info
-            fputcsv($handle, ['BERITA ACARA LAPORAN STOCK OPNAME']);
-            fputcsv($handle, ['Kode Sesi', $stockOpname->opname_code]);
-            fputcsv($handle, ['Judul', $stockOpname->title]);
-            fputcsv($handle, ['Periode', $stockOpname->month_name . ' ' . $stockOpname->period_year]);
-            fputcsv($handle, ['Nama Admin Pemeriksa', $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator')]);
-            fputcsv($handle, ['Lokasi', $stockOpname->location_label]);
-            fputcsv($handle, ['Status', $stockOpname->status === 'completed' ? 'Selesai' : 'Sedang Berjalan']);
-            fputcsv($handle, ['Total Target Sistem', $stockOpname->total_system]);
-            fputcsv($handle, ['Total Fisik Ditemukan (Match)', $stockOpname->total_matched]);
-            fputcsv($handle, ['Total Belum Ditemukan (Missing)', $stockOpname->total_missing]);
-            fputcsv($handle, ['Total Anomali / Temuan Baru', $stockOpname->total_surplus]);
-            fputcsv($handle, ['Tanggal Selesai', $stockOpname->completed_at ? $stockOpname->completed_at->format('d/m/Y H:i') : '-']);
-            fputcsv($handle, []);
+                // Header info
+                fputcsv($handle, ['BERITA ACARA LAPORAN STOCK OPNAME'], ';');
+                fputcsv($handle, ['Kode Sesi', $stockOpname->opname_code], ';');
+                fputcsv($handle, ['Judul', $stockOpname->title], ';');
+                fputcsv($handle, ['Periode', $stockOpname->month_name . ' ' . $stockOpname->period_year], ';');
+                fputcsv($handle, ['Nama Admin Pemeriksa', $stockOpname->admin_name ?: ($stockOpname->conductor ? $stockOpname->conductor->name : 'Administrator')], ';');
+                fputcsv($handle, ['Lokasi', $stockOpname->location_label], ';');
+                fputcsv($handle, ['Status', $stockOpname->status === 'completed' ? 'Selesai' : 'Sedang Berjalan'], ';');
+                fputcsv($handle, ['Total Target Sistem', $stockOpname->total_system], ';');
+                fputcsv($handle, ['Total Fisik Ditemukan (Match)', $stockOpname->total_matched], ';');
+                fputcsv($handle, ['Total Belum Ditemukan (Missing)', $stockOpname->total_missing], ';');
+                fputcsv($handle, ['Total Anomali / Temuan Baru', $stockOpname->total_surplus], ';');
+                fputcsv($handle, ['Tanggal Selesai', $stockOpname->completed_at ? $stockOpname->completed_at->format('d/m/Y H:i') : '-'], ';');
+                fputcsv($handle, [], ';');
 
-            // Data Table Headers
-            fputcsv($handle, [
-                'No',
-                'Nomor Registrasi',
-                'Nama Perangkat',
-                'Area',
-                'Status di Sistem',
-                'Lokasi di Sistem',
-                'Hasil Cek Fisik',
-                'Waktu Scan',
-                'Petugas Scan',
-                'Catatan / Temuan',
-            ]);
-
-            $no = 1;
-            foreach ($stockOpname->items as $item) {
-                $statusText = match ($item->physical_status) {
-                    'matched' => 'SESUAI (MATCH)',
-                    'wrong_location' => 'ANOMALI (SALAH POSISI)',
-                    'surplus_unregistered' => 'TAK TERDAFTAR',
-                    default => 'BELUM DITEMUKAN (MISSING)',
-                };
-
+                // Data Table Headers persis sesuai web
                 fputcsv($handle, [
-                    $no++,
-                    $item->registration_number,
-                    $item->device_name,
-                    $item->area ?? '-',
-                    $item->system_status ?? '-',
-                    $item->system_location ?? '-',
-                    $statusText,
-                    $item->scanned_at ? $item->scanned_at->format('d/m/Y H:i:s') : '-',
-                    $item->scanner ? $item->scanner->name : '-',
-                    $item->notes ?? '-',
-                ]);
-            }
+                    'NO',
+                    'NOMOR REGISTRASI',
+                    'NAMA PERANGKAT',
+                    'AREA',
+                    'STATUS DI SISTEM',
+                    'HASIL CEK FISIK',
+                    'WAKTU SCAN',
+                    'CATATAN / KETERANGAN',
+                ], ';');
 
-            fclose($handle);
-        };
+                $no = 1;
+                foreach ($stockOpname->items as $item) {
+                    $statusText = match ($item->physical_status) {
+                        'matched' => 'SESUAI (MATCH)',
+                        'wrong_location' => 'ANOMALI (SALAH POSISI)',
+                        'surplus_unregistered' => 'TAK TERDAFTAR',
+                        default => 'BELUM DITEMUKAN (MISSING)',
+                    };
 
-        return response()->stream($callback, 200, $headers);
+                    $sysStatus = ucwords(str_replace('_', ' ', $item->system_status ?? 'gudang'));
+                    if ($item->system_location) {
+                        $sysStatus .= ' (' . $item->system_location . ')';
+                    }
+
+                    fputcsv($handle, [
+                        $no++,
+                        $item->registration_number,
+                        $item->device_name,
+                        $item->area ?? '-',
+                        $sysStatus,
+                        $statusText,
+                        $item->scanned_at ? $item->scanned_at->format('d/m/Y H:i:s') : '-',
+                        $item->notes ?? '-',
+                    ], ';');
+                }
+
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
+        }
+
+        // Default: Format Excel Asli (.xlsx) dengan tabel, kolom rapih, border, warna persis seperti web
+        $slug = Str::slug($stockOpname->title ?: 'Stock_Opname');
+        $fileName = 'Stock_Opname_' . $slug . '_' . date('Ymd_His') . '.xlsx';
+        $xlsxContent = SimpleExcelService::exportStockOpnameXlsx($stockOpname);
+
+        return response($xlsxContent, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+            'Cache-Control' => 'max-age=0, no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     public function print(StockOpname $stockOpname)
