@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DeviceController as AdminDeviceController;
 use App\Http\Controllers\Admin\TechnicianController as AdminTechnicianController;
 use App\Http\Controllers\Admin\DeviceHistoryController as AdminDeviceHistoryController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\StockOpnameController as AdminStockOpnameController;
 use App\Http\Controllers\Coordinator\DashboardController as CoordDashboardController;
 
 use App\Http\Controllers\Coordinator\WorkOrderController as CoordWorkOrderController;
@@ -62,6 +63,17 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/devices/import-template', [AdminDeviceController::class, 'downloadTemplate'])->name('devices.import-template');
     Route::post('/devices/import', [AdminDeviceController::class, 'importExcel'])->name('devices.import');
     Route::resource('/devices', AdminDeviceController::class);
+
+    // Stock Opname
+    Route::get('/stock-opname', [AdminStockOpnameController::class, 'index'])->name('stock-opname.index');
+    Route::post('/stock-opname', [AdminStockOpnameController::class, 'store'])->name('stock-opname.store');
+    Route::get('/stock-opname/{stockOpname}', [AdminStockOpnameController::class, 'show'])->name('stock-opname.show');
+    Route::post('/stock-opname/{stockOpname}/scan', [AdminStockOpnameController::class, 'scan'])->name('stock-opname.scan');
+    Route::post('/stock-opname/{stockOpname}/complete', [AdminStockOpnameController::class, 'complete'])->name('stock-opname.complete');
+    Route::post('/stock-opname/{stockOpname}/items/{item}/resolve', [AdminStockOpnameController::class, 'resolveDiscrepancy'])->name('stock-opname.resolve');
+    Route::get('/stock-opname/{stockOpname}/export', [AdminStockOpnameController::class, 'export'])->name('stock-opname.export');
+    Route::get('/stock-opname/{stockOpname}/print', [AdminStockOpnameController::class, 'print'])->name('stock-opname.print');
+    Route::delete('/stock-opname/{stockOpname}', [AdminStockOpnameController::class, 'destroy'])->name('stock-opname.destroy');
 
     // Technicians
     Route::patch('/technicians/{technician}/toggle-status', [AdminTechnicianController::class, 'toggleStatus'])->name('technicians.toggle-status');
