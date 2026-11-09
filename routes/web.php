@@ -65,6 +65,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::resource('/devices', AdminDeviceController::class);
 
     // Stock Opname
+    Route::match(['get', 'post'], '/stock-opname/start', [AdminStockOpnameController::class, 'start'])->name('stock-opname.start');
     Route::get('/stock-opname', [AdminStockOpnameController::class, 'index'])->name('stock-opname.index');
     Route::post('/stock-opname', [AdminStockOpnameController::class, 'store'])->name('stock-opname.store');
     Route::get('/stock-opname/{stockOpname}', [AdminStockOpnameController::class, 'show'])->name('stock-opname.show');

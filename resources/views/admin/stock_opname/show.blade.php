@@ -563,3 +563,4 @@ function stockOpnameApp(config) {
 }
 </script>
 @endsection
+

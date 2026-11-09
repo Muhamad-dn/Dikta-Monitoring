@@ -88,3 +88,4 @@ class StockOpname extends Model
         $this->save();
     }
 }
+

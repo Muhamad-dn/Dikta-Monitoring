@@ -5,7 +5,7 @@
 @section('page_subtitle', 'Audit fisik stok gudang berkala akhir bulan vs catatan sistem PT DIKTA')
 
 @section('content')
-<div class="space-y-6" x-data="{ openCreateModal: false }">
+<div class="space-y-6">
 
     <!-- Top Action & Overview -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -21,11 +21,19 @@
             </p>
         </div>
 
-        <button type="button" @click="openCreateModal = true" 
-                class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            <span>Mulai Stock Opname Baru</span>
-        </button>
+        <!-- HANYA SATU TOMBOL UTAMA -->
+        <div>
+            <a href="{{ route('admin.stock-opname.start') }}" 
+               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                @if(isset($activeOpname) && $activeOpname)
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                    <span>Lanjutkan Scan Stock Opname</span>
+                @else
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Mulai Stock Opname</span>
+                @endif
+            </a>
+        </div>
     </div>
 
     <!-- Quick Stats Cards -->
@@ -84,12 +92,8 @@
                 </div>
                 <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200">Belum Ada Sesi Stock Opname</h4>
                 <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                    Mulai sesi stock opname baru untuk audit fisik berkala akhir bulan menggunakan scan barcode.
+                    Klik tombol <strong>"Mulai Stock Opname"</strong> di atas untuk langsung membuka halaman scan barcode fisik perangkat.
                 </p>
-                <button type="button" @click="openCreateModal = true" 
-                        class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all">
-                    + Buat Sesi Baru Sekarang
-                </button>
             </div>
         @else
             <div class="overflow-x-auto">
@@ -209,88 +213,6 @@
                 </div>
             @endif
         @endif
-    </div>
-
-    <!-- Modal Buat Sesi Opname Baru -->
-    <div x-show="openCreateModal" x-cloak 
-         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
-         @keydown.escape.window="openCreateModal = false">
-        
-        <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full p-6 space-y-5"
-             @click.away="openCreateModal = false">
-            
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    </div>
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Mulai Sesi Stock Opname</h3>
-                        <p class="text-[11px] text-slate-400">Pemeriksaan fisik stok akhir bulan</p>
-                    </div>
-                </div>
-                <button type="button" @click="openCreateModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-
-            <form method="POST" action="{{ route('admin.stock-opname.store') }}" class="space-y-4">
-                @csrf
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Periode Bulan <span class="text-rose-500">*</span></label>
-                        <select name="period_month" required class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                            @foreach(\App\Models\StockOpname::MONTHS as $mNum => $mLabel)
-                                <option value="{{ $mNum }}" {{ (int)date('n') === $mNum ? 'selected' : '' }}>{{ $mLabel }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Tahun <span class="text-rose-500">*</span></label>
-                        <select name="period_year" required class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                            @for($y = date('Y') + 1; $y >= 2024; $y--)
-                                <option value="{{ $y }}" {{ (int)date('Y') === $y ? 'selected' : '' }}>{{ $y }}</option>
-                            @endfor
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Lokasi Gudang yang Diperiksa <span class="text-rose-500">*</span></label>
-                    <select name="location" required class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                        <option value="hb_jkt" selected>Gudang HB JKT (Utama)</option>
-                        <option value="hb_ckr">Gudang HB CKR (Cikarang)</option>
-                        <option value="semua">Semua Lokasi / Perangkat Aktif</option>
-                    </select>
-                    <p class="text-[10px] text-slate-400 mt-1">Sistem akan otomatis mengambil seluruh perangkat yang tercatat di lokasi ini sebagai acuan audit fisik.</p>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Judul Sesi (Opsional)</label>
-                    <input type="text" name="title" placeholder="Contoh: Stock Opname HB JKT Akhir Bulan November 2026"
-                           class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Catatan / Keterangan Tim Pemeriksa (Opsional)</label>
-                    <textarea name="notes" rows="2" placeholder="Nama tim audit atau instruksi khusus..."
-                              class="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button type="button" @click="openCreateModal = false"
-                            class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        Batal
-                    </button>
-                    <button type="submit" 
-                            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all">
-                        Buat Sesi & Mulai Scan
-                    </button>
-                </div>
-            </form>
-        </div>
     </div>
 
 </div>

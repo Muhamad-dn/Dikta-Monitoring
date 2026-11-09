@@ -39,6 +39,14 @@ class StockOpnameTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_admin_can_quick_start_stock_opname()
+    {
+        $response = $this->actingAs($this->admin)->get(route('admin.stock-opname.start'));
+        $opname = StockOpname::first();
+        $this->assertNotNull($opname);
+        $response->assertRedirect(route('admin.stock-opname.show', $opname));
+    }
+
     public function test_admin_can_create_new_stock_opname_session()
     {
         $response = $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
@@ -186,3 +194,4 @@ class StockOpnameTest extends TestCase
         $this->assertStringContainsString('text/csv', $exportResponse->headers->get('Content-Type'));
     }
 }
+

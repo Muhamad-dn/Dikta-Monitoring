@@ -37,7 +37,83 @@ class StockOpnameController extends Controller
             'last_opname' => StockOpname::where('status', 'completed')->latest('completed_at')->first(),
         ];
 
-        return view('admin.stock_opname.index', compact('opnames', 'stats', 'year', 'status'));
+        $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
+
+        return view('admin.stock_opname.index', compact('opnames', 'stats', 'year', 'status', 'activeOpname'));
+    }
+
+    public function start(Request $request)
+    {
+        $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
+        if ($activeOpname) {
+            return redirect()->route('admin.stock-opname.show', $activeOpname)
+                ->with('info', "Melanjutkan sesi Stock Opname aktif: {$activeOpname->title}");
+        }
+
+        $month = (int)date('n');
+        $year = (int)date('Y');
+        $location = $request->input('location', 'hb_jkt');
+        $monthName = StockOpname::MONTHS[$month] ?? 'Bulan ' . $month;
+        $locationLabel = StockOpname::LOCATIONS[$location] ?? 'Gudang HB JKT';
+        $title = "Stock Opname {$monthName} {$year} ({$locationLabel})";
+        $code = 'SO-' . $year . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . strtoupper(Str::random(4));
+
+        DB::beginTransaction();
+        try {
+            $opname = StockOpname::create([
+                'opname_code' => $code,
+                'title' => $title,
+                'period_month' => $month,
+                'period_year' => $year,
+                'location' => $location,
+                'status' => 'in_progress',
+                'conducted_by' => auth()->id(),
+            ]);
+
+            $deviceQuery = Device::query();
+            if ($location === 'hb_jkt') {
+                $deviceQuery->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt']);
+            } elseif ($location === 'hb_ckr') {
+                $deviceQuery->where('stock_status', 'tersedia_hb_ckr');
+            } else {
+                $deviceQuery->where(function ($q) {
+                    $q->whereNull('returned_to_lintasarta')->orWhere('returned_to_lintasarta', false);
+                });
+            }
+
+            $devices = $deviceQuery->get();
+            $itemsData = [];
+            $now = now();
+            foreach ($devices as $device) {
+                $itemsData[] = [
+                    'stock_opname_id' => $opname->id,
+                    'device_id' => $device->id,
+                    'registration_number' => $device->registration_number,
+                    'device_name' => $device->name,
+                    'area' => $device->area,
+                    'system_status' => $device->stock_status,
+                    'system_location' => $device->current_location,
+                    'physical_status' => 'missing',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if (!empty($itemsData)) {
+                foreach (array_chunk($itemsData, 200) as $chunk) {
+                    StockOpnameItem::insert($chunk);
+                }
+            }
+
+            $opname->recalculateTotals();
+            DB::commit();
+
+            return redirect()->route('admin.stock-opname.show', $opname)
+                ->with('success', "Sesi {$opname->title} berhasil dimulai! Halaman scan siap digunakan.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Gagal memulai stock opname: ' . $e->getMessage());
+        }
     }
 
     public function store(Request $request)
