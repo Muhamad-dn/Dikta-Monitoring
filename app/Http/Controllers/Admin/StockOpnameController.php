@@ -37,16 +37,53 @@ class StockOpnameController extends Controller
             'last_opname' => StockOpname::where('status', 'completed')->latest('completed_at')->first(),
         ];
 
-        $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
+        $activeOpname = StockOpname::with(['conductor'])->where('status', 'in_progress')->latest()->first();
 
-        return view('admin.stock_opname.index', compact('opnames', 'stats', 'year', 'status', 'activeOpname'));
+        $activeItems = null;
+        $activeCounts = ['all' => 0, 'matched' => 0, 'missing' => 0, 'anomaly' => 0];
+        $tab = $request->input('tab', 'all');
+        $search = trim($request->input('search', ''));
+
+        if ($activeOpname) {
+            $itemsQuery = $activeOpname->items()->with(['device', 'scanner'])->latest('scanned_at');
+
+            if ($tab === 'matched') {
+                $itemsQuery->where('physical_status', 'matched');
+            } elseif ($tab === 'missing') {
+                $itemsQuery->where('physical_status', 'missing');
+            } elseif ($tab === 'anomaly') {
+                $itemsQuery->whereIn('physical_status', ['wrong_location', 'surplus_unregistered']);
+            }
+
+            if (!empty($search)) {
+                $keyword = '%' . strtolower($search) . '%';
+                $itemsQuery->where(function ($q) use ($keyword) {
+                    $q->whereRaw('LOWER(registration_number) LIKE ?', [$keyword])
+                      ->orWhereRaw('LOWER(device_name) LIKE ?', [$keyword])
+                      ->orWhereRaw('LOWER(COALESCE(area, "")) LIKE ?', [$keyword]);
+                });
+            }
+
+            $activeItems = $itemsQuery->paginate(30, ['*'], 'items_page')->withQueryString();
+
+            $activeCounts = [
+                'all' => $activeOpname->items()->count(),
+                'matched' => $activeOpname->items()->where('physical_status', 'matched')->count(),
+                'missing' => $activeOpname->items()->where('physical_status', 'missing')->count(),
+                'anomaly' => $activeOpname->items()->whereIn('physical_status', ['wrong_location', 'surplus_unregistered'])->count(),
+            ];
+        }
+
+        return view('admin.stock_opname.index', compact(
+            'opnames', 'stats', 'year', 'status', 'activeOpname', 'activeItems', 'activeCounts', 'tab', 'search'
+        ));
     }
 
     public function start(Request $request)
     {
         $activeOpname = StockOpname::where('status', 'in_progress')->latest()->first();
         if ($activeOpname) {
-            return redirect()->route('admin.stock-opname.show', $activeOpname)
+            return redirect()->route('admin.stock-opname.index')
                 ->with('info', "Melanjutkan sesi Stock Opname aktif: {$activeOpname->title}");
         }
 
@@ -108,8 +145,8 @@ class StockOpnameController extends Controller
             $opname->recalculateTotals();
             DB::commit();
 
-            return redirect()->route('admin.stock-opname.show', $opname)
-                ->with('success', "Sesi {$opname->title} berhasil dimulai! Halaman scan siap digunakan.");
+            return redirect()->route('admin.stock-opname.index')
+                ->with('success', "Sesi {$opname->title} berhasil dimulai! Tabel scan barcode siap digunakan.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal memulai stock opname: ' . $e->getMessage());
@@ -185,8 +222,8 @@ class StockOpnameController extends Controller
             $opname->recalculateTotals();
             DB::commit();
 
-            return redirect()->route('admin.stock-opname.show', $opname)
-                ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Halaman scan siap digunakan.");
+            return redirect()->route('admin.stock-opname.index')
+                ->with('success', "Stock Opname {$monthName} {$year} berhasil dimulai oleh {$adminName}! Tabel scan barcode telah siap di bawah.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal membuat sesi stock opname: ' . $e->getMessage())->withInput();
