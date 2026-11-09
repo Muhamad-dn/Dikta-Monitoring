@@ -12,7 +12,7 @@
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <h2 class="text-sm font-bold text-slate-900">Pencarian & Penyaringan Perangkat</h2>
-                <p class="text-xs text-slate-500">Cari berdasarkan Nomor Registrasi</p>
+                <p class="text-xs text-slate-500">Cari berdasarkan Nomor Registrasi, NOJAR, Nama Perangkat, atau Area</p>
             </div>
             <div class="flex items-center gap-2 shrink-0 flex-wrap">
                 <button type="button" onclick="openImportExcelModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl shadow-xs transition-colors cursor-pointer">
@@ -27,15 +27,154 @@
         </div>
 
         <!-- Filter Form -->
-        <form action="{{ route('admin.devices.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
-            <div class="lg:col-span-2">
-                <input type="text" name="search" value="{{ request('search') }}" 
-                       placeholder="Cari dengan No.registrasi / Nojar"
-                       class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
+        <form x-ref="filterForm" 
+              x-data="deviceSearchAutocomplete({
+                  initialQuery: @json(request('search', '')),
+                  stockStatus: @json(request('stock_status', '')),
+                  area: @json(request('area', ''))
+              })"
+              action="{{ route('admin.devices.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+            
+            <div class="lg:col-span-2 relative">
+                <div class="relative">
+                    <input type="text" 
+                           name="search" 
+                           x-model="query"
+                           @input="onInput()"
+                           @focus="if(query.trim().length >= 1) { isOpen = true; if(suggestions.length === 0) onInput(); }"
+                           @keydown.arrow-down.prevent="onArrowDown()"
+                           @keydown.arrow-up.prevent="onArrowUp()"
+                           @keydown.enter="onEnter($event)"
+                           @keydown.escape="close()"
+                           placeholder="Cari No. Registrasi, NOJAR, Nama Perangkat, atau Area..."
+                           autocomplete="off"
+                           class="w-full pl-9 pr-14 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all font-medium text-slate-900 placeholder:text-slate-400">
+                    
+                    <!-- Search Icon Left -->
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+
+                    <!-- Clear / Loading Spinner Right -->
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center gap-1">
+                        <span x-show="isLoading" class="inline-block animate-spin text-brand-600 text-xs" x-cloak>
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </span>
+                        <button type="button" 
+                                x-show="query" 
+                                @click="clearSearch()" 
+                                class="text-slate-400 hover:text-slate-700 p-1 rounded-md text-xs transition-colors"
+                                title="Hapus pencarian" x-cloak>
+                            ✕
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Autocomplete Dropdown Popover (Muncul saat mengetik 1 huruf atau lebih) -->
+                <div x-show="isOpen && query.trim().length >= 1" 
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-100"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 translate-y-1"
+                     @click.outside="close()"
+                     class="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden"
+                     x-cloak>
+                    
+                    <!-- Header status -->
+                    <div class="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                        <div class="flex items-center gap-1.5 font-semibold">
+                            <span x-show="isLoading" class="text-brand-600">Mencari pilihan perangkat...</span>
+                            <span x-show="!isLoading">
+                                <span class="text-emerald-700 font-bold" x-text="suggestions.length"></span> pilihan perangkat ditemukan:
+                            </span>
+                        </div>
+                        <span class="text-[10px] text-slate-400">Klik unit untuk memilih / Enter</span>
+                    </div>
+
+                    <!-- Suggestions List -->
+                    <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                        <template x-for="(item, idx) in suggestions" :key="item.id">
+                            <div :id="'suggestion-item-' + idx"
+                                 @click="selectSuggestion(item)"
+                                 @mouseenter="selectedIndex = idx"
+                                 class="px-4 py-2.5 cursor-pointer transition-colors flex items-center justify-between gap-3 text-left group"
+                                 :class="selectedIndex === idx ? 'bg-brand-50/80 text-brand-900' : 'hover:bg-slate-50/90 text-slate-700'">
+                                
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                        <!-- No Registrasi -->
+                                        <span class="font-mono font-bold text-xs text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200"
+                                              x-text="item.registration_number">
+                                        </span>
+
+                                        <!-- Area Badge -->
+                                        <template x-if="item.area">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 font-mono"
+                                                  x-text="'Area ' + item.area">
+                                            </span>
+                                        </template>
+
+                                        <!-- Nojar if available -->
+                                        <template x-if="item.nojar">
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono"
+                                                  x-text="'NOJAR: ' + item.nojar">
+                                            </span>
+                                        </template>
+
+                                        <!-- Status Badge -->
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                              :class="item.status_badge_class"
+                                              x-text="item.stock_status_label">
+                                        </span>
+                                    </div>
+
+                                    <!-- Device Name -->
+                                    <div class="text-xs font-bold text-slate-900 group-hover:text-brand-600 transition-colors" x-text="item.name"></div>
+
+                                    <!-- Position / Holder -->
+                                    <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
+                                        <span class="text-slate-400">Posisi:</span>
+                                        <strong class="text-slate-700 font-medium" x-text="item.holder || item.current_location"></strong>
+                                    </div>
+                                </div>
+
+                                <!-- Action Button Pill -->
+                                <div class="shrink-0 flex items-center gap-1.5">
+                                    <span class="text-[11px] font-bold text-brand-600 bg-brand-50 group-hover:bg-brand-600 group-hover:text-white px-2.5 py-1 rounded-lg border border-brand-200 transition-all flex items-center gap-1">
+                                        <span>Pilih</span>
+                                        <span>&rarr;</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Empty state when no matches -->
+                        <div x-show="!isLoading && suggestions.length === 0" class="p-6 text-center text-xs text-slate-500">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-sm font-bold">✕</div>
+                            <p class="font-bold text-slate-700">Tidak ada perangkat yang cocok dengan "<span class="text-slate-900" x-text="query"></span>"</p>
+                            <p class="text-[11px] text-slate-400 mt-1">Pencarian dapat menggunakan No. Registrasi, NOJAR, Nama Perangkat, atau Area</p>
+                        </div>
+                    </div>
+
+                    <!-- Dropdown Footer -->
+                    <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+                        <span>Tekan <strong>Enter</strong> untuk melihat seluruh hasil di tabel</span>
+                        <button type="submit" class="font-bold text-brand-600 hover:text-brand-800 text-xs">
+                            Cari di Tabel &rarr;
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div>
-                <select name="stock_status" class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
+                <select name="stock_status" 
+                        x-model="stockStatus"
+                        @change="onFilterChange()"
+                        class="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
                     <option value="">Semua Status Stok</option>
                     <option value="tersedia_hb_jkt" {{ in_array(request('stock_status'), ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']) ? 'selected' : '' }}>Tersedia di HB JKT</option>
                     <option value="tersedia_hb_ckr" {{ request('stock_status') === 'tersedia_hb_ckr' ? 'selected' : '' }}>Tersedia di HB CKR</option>
@@ -49,7 +188,10 @@
             </div>
 
             <div class="flex items-center gap-2">
-                <select name="area" class="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
+                <select name="area" 
+                        x-model="area"
+                        @change="onFilterChange()"
+                        class="flex-1 px-3.5 py-2 text-xs bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all">
                     <option value="">Semua Area</option>
                     @foreach(['BWA', 'BDA', 'SEOA', 'SAST', 'CDA', 'NEA'] as $a)
                         <option value="{{ $a }}" {{ request('area') === $a ? 'selected' : '' }}>{{ $a }}</option>
@@ -454,5 +596,135 @@
             closeReturnDeviceModal();
         }
     });
+
+    function deviceSearchAutocomplete(config = {}) {
+        return {
+            query: config.initialQuery || '',
+            stockStatus: config.stockStatus || '',
+            area: config.area || '',
+            suggestions: [],
+            isLoading: false,
+            isOpen: false,
+            selectedIndex: -1,
+            debounceTimeout: null,
+
+            onInput() {
+                clearTimeout(this.debounceTimeout);
+                const q = this.query.trim();
+                if (q.length < 1) {
+                    this.suggestions = [];
+                    this.isOpen = false;
+                    this.isLoading = false;
+                    return;
+                }
+
+                this.isLoading = true;
+                this.isOpen = true;
+                this.selectedIndex = -1;
+
+                this.debounceTimeout = setTimeout(() => {
+                    this.fetchSuggestions(q);
+                }, 120);
+            },
+
+            async fetchSuggestions(q) {
+                try {
+                    const params = new URLSearchParams({ q: q });
+                    if (this.stockStatus) params.append('stock_status', this.stockStatus);
+                    if (this.area) params.append('area', this.area);
+
+                    const res = await fetch(`{{ route('admin.devices.search-suggestions') }}?${params.toString()}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!res.ok) throw new Error('Network error');
+                    const data = await res.json();
+                    
+                    if (this.query.trim().toLowerCase() === q.toLowerCase()) {
+                        this.suggestions = Array.isArray(data) ? data : [];
+                        this.isOpen = true;
+                    }
+                } catch (err) {
+                    console.error('Error fetching suggestions:', err);
+                    this.suggestions = [];
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            selectSuggestion(suggestion) {
+                if (!suggestion) return;
+                this.query = suggestion.registration_number;
+                this.isOpen = false;
+                this.suggestions = [];
+                this.$nextTick(() => {
+                    if (this.$refs.filterForm) {
+                        this.$refs.filterForm.submit();
+                    }
+                });
+            },
+
+            clearSearch() {
+                this.query = '';
+                this.suggestions = [];
+                this.isOpen = false;
+                if (window.location.search.includes('search=')) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('search');
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                }
+            },
+
+            onFilterChange() {
+                if (this.$refs.filterForm) {
+                    this.$refs.filterForm.submit();
+                }
+            },
+
+            onArrowDown() {
+                if (!this.isOpen || this.suggestions.length === 0) return;
+                if (this.selectedIndex < this.suggestions.length - 1) {
+                    this.selectedIndex++;
+                } else {
+                    this.selectedIndex = 0;
+                }
+                this.scrollToSelected();
+            },
+
+            onArrowUp() {
+                if (!this.isOpen || this.suggestions.length === 0) return;
+                if (this.selectedIndex > 0) {
+                    this.selectedIndex--;
+                } else {
+                    this.selectedIndex = this.suggestions.length - 1;
+                }
+                this.scrollToSelected();
+            },
+
+            scrollToSelected() {
+                this.$nextTick(() => {
+                    const el = document.getElementById(`suggestion-item-${this.selectedIndex}`);
+                    if (el) el.scrollIntoView({ block: 'nearest' });
+                });
+            },
+
+            onEnter(event) {
+                if (this.isOpen && this.selectedIndex >= 0 && this.suggestions[this.selectedIndex]) {
+                    event.preventDefault();
+                    this.selectSuggestion(this.suggestions[this.selectedIndex]);
+                } else {
+                    this.isOpen = false;
+                }
+            },
+
+            close() {
+                this.isOpen = false;
+                this.selectedIndex = -1;
+            }
+        };
+    }
 </script>
 @endsection

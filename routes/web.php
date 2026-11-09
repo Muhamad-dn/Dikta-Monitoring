@@ -50,6 +50,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/devices/returns', [AdminDeviceController::class, 'returnIndex'])->name('devices.returns');
     Route::post('/devices/process-return', [AdminDeviceController::class, 'processReturn'])->name('devices.process-return');
     Route::get('/devices/stock', [AdminDeviceController::class, 'stock'])->name('devices.stock');
+    Route::get('/devices/search-suggestions', [AdminDeviceController::class, 'searchSuggestions'])->name('devices.search-suggestions');
     Route::get('/devices/check-registration', [AdminDeviceController::class, 'checkRegistration'])->name('devices.check-registration');
     Route::get('/devices/check-spec', [AdminDeviceController::class, 'checkSpec'])->name('devices.check-spec');
     Route::get('/devices/{device}/print-label', [AdminDeviceController::class, 'printLabel'])->name('devices.print-label');

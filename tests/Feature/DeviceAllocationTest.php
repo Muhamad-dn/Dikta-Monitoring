@@ -113,8 +113,8 @@ class DeviceAllocationTest extends TestCase
         $response->assertDontSee('<th class="px-5 py-3.5">Kondisi</th>', false);
         $response->assertDontSee('Rekapitulasi Kategori Perangkat');
 
-        // Pastikan input pencarian No. Registrasi / Nojar ada
-        $response->assertSee('Cari dengan No.registrasi / Nojar');
+        // Pastikan input pencarian No. Registrasi / Nojar / Area ada
+        $response->assertSee('Cari No. Registrasi, NOJAR, Nama Perangkat, atau Area');
         $response->assertSee('name="search"', false);
     }
 

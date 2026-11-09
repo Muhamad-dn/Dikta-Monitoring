@@ -73,6 +73,7 @@ class DashboardController extends Controller
                   ->orWhere('serial_number', 'like', "%{$search}%")
                   ->orWhere('nojar', 'like', "%{$search}%")
                   ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('area', 'like', "%{$search}%")
                   ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhereHas('activeWorkOrder', function ($woQ) use ($search) {
                       $woQ->where('nojar', 'like', "%{$search}%")

@@ -29,7 +29,8 @@ class DeviceController extends Controller
                   ->orWhere('brand', 'like', "%{$search}%")
                   ->orWhere('model', 'like', "%{$search}%")
                   ->orWhere('nojar', 'like', "%{$search}%")
-                  ->orWhere('customer_name', 'like', "%{$search}%");
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('area', 'like', "%{$search}%");
             });
         }
 
@@ -64,6 +65,85 @@ class DeviceController extends Controller
         $devices = $query->paginate(10)->withQueryString();
 
         return view('admin.devices.index', compact('devices'));
+    }
+
+    public function searchSuggestions(Request $request)
+    {
+        $q = trim($request->query('q', ''));
+        if ($q === '') {
+            return response()->json([]);
+        }
+
+        $query = Device::with(['currentTechnician', 'activeWorkOrder']);
+
+        // Filter status stok jika ada filter aktif
+        if ($request->filled('stock_status')) {
+            if ($request->stock_status === 'warehouse_only') {
+                $query->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta']);
+            } elseif (in_array($request->stock_status, ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])) {
+                $query->whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta']);
+            } else {
+                $query->where('stock_status', $request->stock_status);
+            }
+        }
+
+        // Filter area jika ada filter aktif
+        if ($request->filled('area')) {
+            $query->where('area', $request->area);
+        }
+
+        // Pencarian multi-kolom: no registrasi, nojar, nama perangkat, area, dll.
+        $query->where(function ($builder) use ($q) {
+            $builder->where('registration_number', 'like', "%{$q}%")
+                ->orWhere('nojar', 'like', "%{$q}%")
+                ->orWhere('name', 'like', "%{$q}%")
+                ->orWhere('area', 'like', "%{$q}%")
+                ->orWhere('serial_number', 'like', "%{$q}%")
+                ->orWhere('kode_spek', 'like', "%{$q}%")
+                ->orWhere('brand', 'like', "%{$q}%")
+                ->orWhere('customer_name', 'like', "%{$q}%");
+        });
+
+        $upperQ = strtoupper($q);
+        $likeQ = "{$q}%";
+
+        $devices = $query->orderByRaw("
+            CASE 
+                WHEN UPPER(registration_number) = ? THEN 1
+                WHEN UPPER(nojar) = ? THEN 2
+                WHEN UPPER(registration_number) LIKE ? THEN 3
+                WHEN UPPER(nojar) LIKE ? THEN 4
+                WHEN UPPER(name) LIKE ? THEN 5
+                WHEN UPPER(area) = ? THEN 6
+                ELSE 7
+            END, id DESC
+        ", [$upperQ, $upperQ, $likeQ, $likeQ, $likeQ, $upperQ])
+        ->take(8)
+        ->get();
+
+        $results = $devices->map(function ($device) {
+            $holder = $device->current_location;
+            if ($device->stock_status === 'dibawa_teknisi' && $device->currentTechnician) {
+                $holder = $device->currentTechnician->name;
+            }
+
+            return [
+                'id' => $device->id,
+                'registration_number' => $device->registration_number,
+                'name' => $device->name,
+                'nojar' => $device->nojar ?? '',
+                'area' => $device->area ?? '',
+                'brand' => $device->brand ?? '',
+                'stock_status' => $device->stock_status,
+                'stock_status_label' => $device->stock_status_label,
+                'status_badge_class' => $device->status_badge_class,
+                'current_location' => $device->current_location,
+                'holder' => $holder,
+                'detail_url' => route('admin.devices.show', $device),
+            ];
+        });
+
+        return response()->json($results);
     }
 
     public function checkSpec(Request $request)
@@ -817,7 +897,8 @@ class DeviceController extends Controller
                   ->orWhere('brand', 'like', "%{$search}%")
                   ->orWhere('customer_name', 'like', "%{$search}%")
                   ->orWhere('address', 'like', "%{$search}%")
-                  ->orWhere('nojar', 'like', "%{$search}%");
+                  ->orWhere('nojar', 'like', "%{$search}%")
+                  ->orWhere('area', 'like', "%{$search}%");
             });
         }
         $devicesInWarehouse = $warehouseQuery->latest('id')->paginate(10)->withQueryString();

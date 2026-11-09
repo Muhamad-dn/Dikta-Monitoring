@@ -77,7 +77,7 @@
 
         <!-- Search Bar No. Registrasi / Pelanggan / Device -->
         <div class="p-4 bg-slate-50/70 border-b border-slate-100">
-            <form method="GET" action="{{ route('admin.devices.stock') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <form x-ref="stockSearchForm" method="GET" action="{{ route('admin.devices.stock') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 @if(request('hub'))
                     <input type="hidden" name="hub" value="{{ request('hub') }}">
                 @endif
@@ -88,9 +88,19 @@
                     <input type="text" 
                            name="search" 
                            x-model="searchQuery" 
-                           placeholder="Cari dengan No.registrasi / Nojar / Kode Spek / Nama" 
+                           @input="onSearchInput()"
+                           @focus="if((searchQuery || '').trim().length >= 1) { isSuggestionsOpen = true; if(suggestions.length === 0) onSearchInput(); }"
+                           @keydown.arrow-down.prevent="onSuggestionsArrowDown()"
+                           @keydown.arrow-up.prevent="onSuggestionsArrowUp()"
+                           @keydown.enter="onSuggestionsEnter($event)"
+                           @keydown.escape="isSuggestionsOpen = false"
+                           autocomplete="off"
+                           placeholder="Cari No. Registrasi, NOJAR, Nama Perangkat, atau Area..." 
                            class="w-full pl-9 pr-24 py-2 text-xs bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-xs placeholder-slate-400 font-medium">
                     <div class="absolute inset-y-0 right-0 pr-1.5 flex items-center gap-1">
+                        <span x-show="isSuggestionsLoading" class="inline-block animate-spin text-emerald-600 text-xs mr-1" x-cloak>
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        </span>
                         <button type="button" 
                                 x-show="searchQuery" 
                                 @click="searchQuery = ''; window.location.href='{{ route('admin.devices.stock', array_filter(['hub' => request('hub')])) }}';" 
@@ -102,6 +112,92 @@
                                 class="px-2.5 py-1 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs transition-colors">
                             Cari
                         </button>
+                    </div>
+
+                    <!-- Autocomplete Dropdown Popover di Stok Gudang -->
+                    <div x-show="isSuggestionsOpen && (searchQuery || '').trim().length >= 1" 
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 translate-y-1"
+                         @click.outside="isSuggestionsOpen = false"
+                         class="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden"
+                         x-cloak>
+                        
+                        <div class="px-3.5 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                            <div class="flex items-center gap-1.5 font-semibold">
+                                <span x-show="isSuggestionsLoading" class="text-emerald-600">Mencari pilihan perangkat...</span>
+                                <span x-show="!isSuggestionsLoading">
+                                    <span class="text-emerald-700 font-bold" x-text="suggestions.length"></span> pilihan perangkat stok ditemukan:
+                                </span>
+                            </div>
+                            <span class="text-[10px] text-slate-400">Klik unit untuk memilih / Enter</span>
+                        </div>
+
+                        <div class="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                            <template x-for="(item, idx) in suggestions" :key="item.id">
+                                <div :id="'stock-sug-' + idx"
+                                     @click="selectStockSuggestion(item)"
+                                     @mouseenter="suggestionsSelectedIndex = idx"
+                                     class="px-4 py-2.5 cursor-pointer transition-colors flex items-center justify-between gap-3 text-left group"
+                                     :class="suggestionsSelectedIndex === idx ? 'bg-emerald-50 text-emerald-950' : 'hover:bg-slate-50/90 text-slate-700'">
+                                    
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-1.5 flex-wrap mb-1">
+                                            <span class="font-mono font-bold text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                                                  x-text="item.registration_number">
+                                            </span>
+
+                                            <template x-if="item.area">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 font-mono"
+                                                      x-text="'Area ' + item.area">
+                                                </span>
+                                            </template>
+
+                                            <template x-if="item.nojar">
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 font-mono"
+                                                      x-text="'NOJAR: ' + item.nojar">
+                                                </span>
+                                            </template>
+
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+                                                  :class="item.status_badge_class"
+                                                  x-text="item.stock_status_label">
+                                            </span>
+                                        </div>
+
+                                        <div class="text-xs font-bold text-slate-900 group-hover:text-emerald-600 transition-colors" x-text="item.name"></div>
+
+                                        <div class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 truncate">
+                                            <span class="text-slate-400">Lokasi:</span>
+                                            <strong class="text-slate-700 font-medium" x-text="item.holder || item.current_location"></strong>
+                                        </div>
+                                    </div>
+
+                                    <div class="shrink-0 flex items-center gap-1.5">
+                                        <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 group-hover:bg-emerald-600 group-hover:text-white px-2.5 py-1 rounded-lg border border-emerald-200 transition-all flex items-center gap-1">
+                                            <span>Pilih</span>
+                                            <span>&rarr;</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div x-show="!isSuggestionsLoading && suggestions.length === 0" class="p-6 text-center text-xs text-slate-500">
+                                <div class="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2 text-sm font-bold">✕</div>
+                                <p class="font-bold text-slate-700">Tidak ada perangkat stok yang cocok dengan "<span class="text-slate-900" x-text="searchQuery"></span>"</p>
+                                <p class="text-[11px] text-slate-400 mt-1">Periksa No. Registrasi, NOJAR, Nama Perangkat, atau Area</p>
+                            </div>
+                        </div>
+
+                        <div class="px-4 py-2 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between">
+                            <span>Tekan <strong>Enter</strong> untuk mencari "<span x-text="searchQuery"></span>" di seluruh tabel</span>
+                            <button type="submit" class="font-bold text-emerald-600 hover:text-emerald-800 text-xs">
+                                Cari di Tabel &rarr;
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -383,6 +479,12 @@ function stockAllocationApp() {
         selectedArea: '',
         allocateActionUrl: '',
 
+        suggestions: [],
+        isSuggestionsOpen: false,
+        isSuggestionsLoading: false,
+        suggestionsSelectedIndex: -1,
+        suggestionsDebounce: null,
+
         devices: {!! json_encode($devicesInWarehouseData ?? []) !!},
 
         extractRegNumber(raw) {
@@ -425,6 +527,97 @@ function stockAllocationApp() {
 
         get isSearchEmpty() {
             return this.devices.length > 0 && this.matchCount === 0;
+        },
+
+        onSearchInput() {
+            clearTimeout(this.suggestionsDebounce);
+            const q = (this.searchQuery || '').trim();
+            if (q.length < 1) {
+                this.suggestions = [];
+                this.isSuggestionsOpen = false;
+                this.isSuggestionsLoading = false;
+                return;
+            }
+
+            this.isSuggestionsLoading = true;
+            this.isSuggestionsOpen = true;
+            this.suggestionsSelectedIndex = -1;
+
+            this.suggestionsDebounce = setTimeout(async () => {
+                try {
+                    const hub = @json(request('hub', ''));
+                    const params = new URLSearchParams({
+                        q: q,
+                        stock_status: 'warehouse_only'
+                    });
+                    if (hub === 'hb_jkt') params.set('stock_status', 'tersedia_hb_jkt');
+                    if (hub === 'hb_ckr') params.set('stock_status', 'tersedia_hb_ckr');
+
+                    const res = await fetch(`{{ route('admin.devices.search-suggestions') }}?${params.toString()}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    if (!res.ok) throw new Error('Network error');
+                    const data = await res.json();
+                    if ((this.searchQuery || '').trim().toLowerCase() === q.toLowerCase()) {
+                        this.suggestions = Array.isArray(data) ? data : [];
+                        this.isSuggestionsOpen = true;
+                    }
+                } catch(e) {
+                    this.suggestions = [];
+                } finally {
+                    this.isSuggestionsLoading = false;
+                }
+            }, 120);
+        },
+
+        selectStockSuggestion(item) {
+            if (!item) return;
+            this.searchQuery = item.registration_number;
+            this.isSuggestionsOpen = false;
+            this.suggestions = [];
+            this.$nextTick(() => {
+                if (this.$refs.stockSearchForm) {
+                    this.$refs.stockSearchForm.submit();
+                }
+            });
+        },
+
+        onSuggestionsArrowDown() {
+            if (!this.isSuggestionsOpen || this.suggestions.length === 0) return;
+            if (this.suggestionsSelectedIndex < this.suggestions.length - 1) {
+                this.suggestionsSelectedIndex++;
+            } else {
+                this.suggestionsSelectedIndex = 0;
+            }
+            this.$nextTick(() => {
+                const el = document.getElementById('stock-sug-' + this.suggestionsSelectedIndex);
+                if (el) el.scrollIntoView({ block: 'nearest' });
+            });
+        },
+
+        onSuggestionsArrowUp() {
+            if (!this.isSuggestionsOpen || this.suggestions.length === 0) return;
+            if (this.suggestionsSelectedIndex > 0) {
+                this.suggestionsSelectedIndex--;
+            } else {
+                this.suggestionsSelectedIndex = this.suggestions.length - 1;
+            }
+            this.$nextTick(() => {
+                const el = document.getElementById('stock-sug-' + this.suggestionsSelectedIndex);
+                if (el) el.scrollIntoView({ block: 'nearest' });
+            });
+        },
+
+        onSuggestionsEnter(event) {
+            if (this.isSuggestionsOpen && this.suggestionsSelectedIndex >= 0 && this.suggestions[this.suggestionsSelectedIndex]) {
+                event.preventDefault();
+                this.selectStockSuggestion(this.suggestions[this.suggestionsSelectedIndex]);
+            } else {
+                this.isSuggestionsOpen = false;
+            }
         },
 
         openAllocateModal(id, reg, name, nojar, activity, customer, address, area) {
