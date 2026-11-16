@@ -142,3 +142,73 @@ Route::middleware(['auth', 'role:teknisi'])->prefix('technician')->name('technic
     // History
     Route::get('/history', [TechTaskController::class, 'history'])->name('history.index');
 });
+
+// Route inisialisasi / migrasi database cloud (Supabase / Postgres)
+Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
+    if ($request->query('key') !== 'dikta2026') {
+        abort(403, 'Akses ditolak: Kunci rahasia tidak valid.');
+    }
+
+    try {
+        $connection = config('database.default');
+        $dbName = config("database.connections.{$connection}.database");
+        $dbHost = config("database.connections.{$connection}.host");
+
+        // 1. Jalankan Migrasi Tabel
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+
+        // 2. Jalankan Seeder jika user masih kosong
+        $seeded = false;
+        if (\App\Models\User::count() === 0) {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $seeded = true;
+        }
+
+        $userCount = \App\Models\User::count();
+        $deviceCount = \App\Models\Device::count();
+
+        return response("
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='utf-8'>
+            <title>Inisialisasi Database Berhasil</title>
+            <style>
+                body { font-family: sans-serif; background: #0f172a; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+                .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 32px; max-width: 600px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+                h1 { color: #10b981; font-size: 22px; margin-top: 0; display: flex; align-items: center; gap: 8px; }
+                .info { background: #0f172a; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 13px; line-height: 1.6; margin: 16px 0; color: #94a3b8; }
+                .info strong { color: #f1f5f9; }
+                .btn { display: inline-block; background: #2563eb; color: #fff; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class='card'>
+                <h1><span>&#10004;</span> Database Berhasil Diinisialisasi!</h1>
+                <p>Database cloud Anda telah terhubung dan siap digunakan secara permanen.</p>
+                <div class='info'>
+                    <div>Koneksi Database: <strong>{$connection}</strong> ({$dbHost})</div>
+                    <div>Nama Database: <strong>{$dbName}</strong></div>
+                    <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
+                    <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
+                    <div>Status Seeder: <strong>" . ($seeded ? 'Data awal berhasil dimuat' : 'Data sudah ada sebelumnya') . "</strong></div>
+                </div>
+                <a href='/login' class='btn'>Buka Halaman Login &rarr;</a>
+            </div>
+        </body>
+        </html>
+        ", 200, ['Content-Type' => 'text/html']);
+    } catch (\Throwable $e) {
+        return response("
+        <!DOCTYPE html>
+        <html>
+        <head><title>Gagal Inisialisasi Database</title></head>
+        <body style='font-family:sans-serif; background:#0f172a; color:#f87171; padding:40px;'>
+            <h2>&#10060; Terjadi Kesalahan saat Migrasi:</h2>
+            <pre style='background:#1e293b; color:#f1f5f9; padding:16px; border-radius:8px; overflow-x:auto;'>" . htmlspecialchars($e->getMessage()) . "</pre>
+            <p style='color:#94a3b8;'>Pastikan data DB_HOST, DB_PASSWORD, dan kredensial Supabase di Vercel Environment Variables sudah benar, lalu coba lagi.</p>
+        </body>
+        </html>
+        ", 500, ['Content-Type' => 'text/html']);
+    }
+});
