@@ -27,20 +27,25 @@ putenv('APP_PACKAGES_CACHE=/tmp/bootstrap/cache/packages.php');
 putenv('APP_ROUTES_CACHE=/tmp/bootstrap/cache/routes.php');
 putenv('APP_SERVICES_CACHE=/tmp/bootstrap/cache/services.php');
 
-// Salin database SQLite ke /tmp jika digunakan
-$dbSource = __DIR__ . '/../database/database.sqlite';
-$dbTarget = '/tmp/database.sqlite';
-if (!file_exists($dbTarget) && file_exists($dbSource)) {
-    copy($dbSource, $dbTarget);
+// Cek koneksi database dari environment (misal pgsql, mysql, atau sqlite)
+$dbConnection = getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? 'sqlite');
+
+if ($dbConnection === 'sqlite') {
+    // Salin database SQLite ke /tmp jika menggunakan SQLite lokal di serverless
+    $dbSource = __DIR__ . '/../database/database.sqlite';
+    $dbTarget = '/tmp/database.sqlite';
+    if (!file_exists($dbTarget) && file_exists($dbSource)) {
+        copy($dbSource, $dbTarget);
+    }
+
+    $_ENV['DB_CONNECTION'] = 'sqlite';
+    $_SERVER['DB_CONNECTION'] = 'sqlite';
+    putenv('DB_CONNECTION=sqlite');
+
+    $_ENV['DB_DATABASE'] = $dbTarget;
+    $_SERVER['DB_DATABASE'] = $dbTarget;
+    putenv("DB_DATABASE={$dbTarget}");
 }
-
-$_ENV['DB_CONNECTION'] = 'sqlite';
-$_SERVER['DB_CONNECTION'] = 'sqlite';
-putenv('DB_CONNECTION=sqlite');
-
-$_ENV['DB_DATABASE'] = $dbTarget;
-$_SERVER['DB_DATABASE'] = $dbTarget;
-putenv("DB_DATABASE={$dbTarget}");
 
 // Jalankan Laravel public/index.php
 require __DIR__ . '/../public/index.php';
