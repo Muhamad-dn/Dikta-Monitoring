@@ -165,8 +165,17 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             'config_default' => $connection,
         ];
 
-        // 1. Jalankan Migrasi Tabel
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        // 1. Jalankan Migrasi Tabel (otomatis migrate:fresh jika ada tabel konflik lama di Postgres)
+        $isFresh = $request->query('fresh') === '1';
+        try {
+            if ($isFresh) {
+                \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+            } else {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            }
+        } catch (\Throwable $mErr) {
+            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+        }
 
         // 2. Jalankan Seeder jika user masih kosong
         $seeded = false;
