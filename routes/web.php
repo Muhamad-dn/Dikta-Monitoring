@@ -154,6 +154,17 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
         $dbName = config("database.connections.{$connection}.database");
         $dbHost = config("database.connections.{$connection}.host");
 
+        // Diagnostik variabel environment
+        $envDiag = [
+            'getenv_DB_CONNECTION' => getenv('DB_CONNECTION') ?: '(kosong)',
+            'ENV_DB_CONNECTION' => $_ENV['DB_CONNECTION'] ?? '(kosong)',
+            'SERVER_DB_CONNECTION' => $_SERVER['DB_CONNECTION'] ?? '(kosong)',
+            'getenv_DB_HOST' => getenv('DB_HOST') ?: '(kosong)',
+            'ENV_DB_HOST' => $_ENV['DB_HOST'] ?? '(kosong)',
+            'SERVER_DB_HOST' => $_SERVER['DB_HOST'] ?? '(kosong)',
+            'config_default' => $connection,
+        ];
+
         // 1. Jalankan Migrasi Tabel
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
 
@@ -187,8 +198,15 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                 <h1><span>&#10004;</span> Database Berhasil Diinisialisasi!</h1>
                 <p>Database cloud Anda telah terhubung dan siap digunakan secara permanen.</p>
                 <div class='info'>
-                    <div>Koneksi Database: <strong>{$connection}</strong> ({$dbHost})</div>
+                    <div>Koneksi Database Aktif: <strong>{$connection}</strong> ({$dbHost})</div>
                     <div>Nama Database: <strong>{$dbName}</strong></div>
+                    <div style='margin-top:10px; padding:10px; background:#1e293b; border-radius:6px;'>
+                        <div style='color:#38bdf8; font-weight:bold;'>Status Variabel di Vercel:</div>
+                        <div>getenv(DB_CONNECTION): <strong>{$envDiag['getenv_DB_CONNECTION']}</strong></div>
+                        <div>\$_ENV['DB_CONNECTION']: <strong>{$envDiag['ENV_DB_CONNECTION']}</strong></div>
+                        <div>\$_SERVER['DB_CONNECTION']: <strong>{$envDiag['SERVER_DB_CONNECTION']}</strong></div>
+                        <div>DB_HOST: <strong>{$envDiag['getenv_DB_HOST']}</strong></div>
+                    </div>
                     <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
                     <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
                     <div>Status Seeder: <strong>" . ($seeded ? 'Data awal berhasil dimuat' : 'Data sudah ada sebelumnya') . "</strong></div>

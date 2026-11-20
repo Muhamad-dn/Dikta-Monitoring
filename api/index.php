@@ -28,7 +28,20 @@ putenv('APP_ROUTES_CACHE=/tmp/bootstrap/cache/routes.php');
 putenv('APP_SERVICES_CACHE=/tmp/bootstrap/cache/services.php');
 
 // Cek koneksi database dari environment (misal pgsql, mysql, atau sqlite)
-$dbConnection = getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? 'sqlite');
+$dbConnection = getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? ($_SERVER['DB_CONNECTION'] ?? null));
+$dbHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? null));
+$databaseUrl = getenv('DATABASE_URL') ?: ($_ENV['DATABASE_URL'] ?? ($_SERVER['DATABASE_URL'] ?? null));
+
+// Jika ada DB_HOST atau DATABASE_URL cloud (misal Supabase / Postgres), otomatis arahkan ke pgsql
+if (!$dbConnection) {
+    if ($databaseUrl || ($dbHost && (str_contains($dbHost, 'supabase') || str_contains($dbHost, 'neon') || str_contains($dbHost, 'pooler')))) {
+        $dbConnection = 'pgsql';
+    } elseif ($dbHost) {
+        $dbConnection = 'mysql';
+    } else {
+        $dbConnection = 'sqlite';
+    }
+}
 
 if ($dbConnection === 'sqlite') {
     // Salin database SQLite ke /tmp jika menggunakan SQLite lokal di serverless
@@ -45,6 +58,11 @@ if ($dbConnection === 'sqlite') {
     $_ENV['DB_DATABASE'] = $dbTarget;
     $_SERVER['DB_DATABASE'] = $dbTarget;
     putenv("DB_DATABASE={$dbTarget}");
+} else {
+    // Pastikan koneksi cloud tersinkron penuh ke putenv, $_ENV, dan $_SERVER
+    $_ENV['DB_CONNECTION'] = $dbConnection;
+    $_SERVER['DB_CONNECTION'] = $dbConnection;
+    putenv("DB_CONNECTION={$dbConnection}");
 }
 
 // Jalankan Laravel public/index.php
