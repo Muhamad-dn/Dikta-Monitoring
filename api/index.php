@@ -43,6 +43,25 @@ if (!$dbConnection) {
     }
 }
 
+// Jika menggunakan Supabase direct host (db.*.supabase.co), AWS Lambda di Vercel tidak mendukung IPv6
+// Otomatis arahkan ke Supabase Connection Pooler (IPv4) agar koneksi Vercel berhasil
+if ($dbHost && preg_match('/db\.([a-z0-9]+)\.supabase\.co/i', $dbHost, $matches)) {
+    $projectRef = $matches[1];
+    $poolerHost = "aws-0-ap-northeast-2.pooler.supabase.com";
+    $dbHost = $poolerHost;
+    putenv("DB_HOST={$poolerHost}");
+    $_ENV['DB_HOST'] = $poolerHost;
+    $_SERVER['DB_HOST'] = $poolerHost;
+
+    $currentUser = getenv('DB_USERNAME') ?: ($_ENV['DB_USERNAME'] ?? ($_SERVER['DB_USERNAME'] ?? 'postgres'));
+    if ($currentUser === 'postgres' || !str_contains($currentUser, '.')) {
+        $poolerUser = "postgres.{$projectRef}";
+        putenv("DB_USERNAME={$poolerUser}");
+        $_ENV['DB_USERNAME'] = $poolerUser;
+        $_SERVER['DB_USERNAME'] = $poolerUser;
+    }
+}
+
 if ($dbConnection === 'sqlite') {
     // Salin database SQLite ke /tmp jika menggunakan SQLite lokal di serverless
     $dbSource = __DIR__ . '/../database/database.sqlite';
