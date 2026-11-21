@@ -177,15 +177,62 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
         }
 
-        // 2. Jalankan Seeder jika user masih kosong
-        $seeded = false;
-        if (\App\Models\User::count() === 0) {
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $seeded = true;
+        // 2. Jalankan Sinkronisasi 243 Stok Asli dan 6 Teknisi Asli dari database.sqlite jika belum lengkap
+        if (\App\Models\Device::count() < 100) {
+            $sqlitePath = database_path('database.sqlite');
+            if (file_exists($sqlitePath)) {
+                $sqlite = new \PDO("sqlite:{$sqlitePath}");
+                $sqlite->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+                // Users asli (hapus dummy user seeder seperti Budi/Agus jika ada, ganti dengan 6 teknisi asli)
+                $users = $sqlite->query("SELECT * FROM users")->fetchAll(\PDO::FETCH_ASSOC);
+                $validUserIds = array_column($users, 'id');
+                \Illuminate\Support\Facades\DB::table('users')->whereNotIn('id', $validUserIds)->delete();
+                foreach ($users as $u) {
+                    \Illuminate\Support\Facades\DB::table('users')->updateOrInsert(['id' => $u['id']], $u);
+                }
+
+                // Specifications (102 spek)
+                $specs = $sqlite->query("SELECT * FROM device_specifications")->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($specs as $s) {
+                    \Illuminate\Support\Facades\DB::table('device_specifications')->updateOrInsert(['id' => $s['id']], $s);
+                }
+
+                // Devices (243 unit lengkap)
+                $devices = $sqlite->query("SELECT * FROM devices")->fetchAll(\PDO::FETCH_ASSOC);
+                foreach (array_chunk($devices, 50) as $chunk) {
+                    foreach ($chunk as $d) {
+                        \Illuminate\Support\Facades\DB::table('devices')->updateOrInsert(['id' => $d['id']], $d);
+                    }
+                }
+
+                // Work Orders
+                $wos = $sqlite->query("SELECT * FROM work_orders")->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($wos as $w) {
+                    \Illuminate\Support\Facades\DB::table('work_orders')->updateOrInsert(['id' => $w['id']], $w);
+                }
+
+                // Device Histories
+                $histories = $sqlite->query("SELECT * FROM device_histories")->fetchAll(\PDO::FETCH_ASSOC);
+                foreach (array_chunk($histories, 50) as $chunk) {
+                    foreach ($chunk as $h) {
+                        \Illuminate\Support\Facades\DB::table('device_histories')->updateOrInsert(['id' => $h['id']], $h);
+                    }
+                }
+
+                // Reset Sequences di PostgreSQL
+                if (config('database.default') === 'pgsql') {
+                    $seqTables = ['users', 'device_specifications', 'devices', 'work_orders', 'device_histories'];
+                    foreach ($seqTables as $tbl) {
+                        \Illuminate\Support\Facades\DB::statement("SELECT setval(pg_get_serial_sequence('{$tbl}', 'id'), coalesce(max(id), 0) + 1, false) FROM {$tbl};");
+                    }
+                }
+            }
         }
 
         $userCount = \App\Models\User::count();
         $deviceCount = \App\Models\Device::count();
+        $technicianNames = \App\Models\User::where('role', 'teknisi')->pluck('name')->implode(', ');
 
         return response("
         <!DOCTYPE html>
@@ -217,6 +264,7 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                         <div>DB_HOST: <strong>{$envDiag['getenv_DB_HOST']}</strong></div>
                     </div>
                     <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
+                    <div>Daftar Teknisi Asli: <strong>{$technicianNames}</strong></div>
                     <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
                     <div>Status Seeder: <strong>" . ($seeded ? 'Data awal berhasil dimuat' : 'Data sudah ada sebelumnya') . "</strong></div>
                 </div>
