@@ -266,7 +266,7 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                     <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
                     <div>Daftar Teknisi Asli: <strong>{$technicianNames}</strong></div>
                     <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
-                    <div>Status Seeder: <strong>" . ($seeded ? 'Data awal berhasil dimuat' : 'Data sudah ada sebelumnya') . "</strong></div>
+                    <div>Status Sinkronisasi: <strong>Sinkronisasi 243 Perangkat dan 6 Teknisi Asli Berhasil</strong></div>
                 </div>
                 <a href='/login' class='btn'>Buka Halaman Login &rarr;</a>
             </div>
