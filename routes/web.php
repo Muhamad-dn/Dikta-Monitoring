@@ -178,46 +178,40 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
         }
 
         // 2. Jalankan Sinkronisasi 243 Stok Asli dan 6 Teknisi Asli dari database.sqlite jika belum lengkap
-        if (\App\Models\Device::count() < 100) {
+        if (\App\Models\Device::count() < 100 || $request->query('sync') === '1') {
             $sqlitePath = database_path('database.sqlite');
             if (file_exists($sqlitePath)) {
                 $sqlite = new \PDO("sqlite:{$sqlitePath}");
                 $sqlite->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-                // Users asli (hapus dummy user seeder seperti Budi/Agus jika ada, ganti dengan 6 teknisi asli)
+                // Users asli (hapus dummy seeder, masukkan 8 akun asli termasuk 6 teknisi)
                 $users = $sqlite->query("SELECT * FROM users")->fetchAll(\PDO::FETCH_ASSOC);
                 $validUserIds = array_column($users, 'id');
                 \Illuminate\Support\Facades\DB::table('users')->whereNotIn('id', $validUserIds)->delete();
-                foreach ($users as $u) {
-                    \Illuminate\Support\Facades\DB::table('users')->updateOrInsert(['id' => $u['id']], $u);
-                }
+                \Illuminate\Support\Facades\DB::table('users')->upsert($users, ['id']);
 
                 // Specifications (102 spek)
                 $specs = $sqlite->query("SELECT * FROM device_specifications")->fetchAll(\PDO::FETCH_ASSOC);
-                foreach ($specs as $s) {
-                    \Illuminate\Support\Facades\DB::table('device_specifications')->updateOrInsert(['id' => $s['id']], $s);
+                foreach (array_chunk($specs, 50) as $chunk) {
+                    \Illuminate\Support\Facades\DB::table('device_specifications')->upsert($chunk, ['id']);
                 }
 
                 // Devices (243 unit lengkap)
                 $devices = $sqlite->query("SELECT * FROM devices")->fetchAll(\PDO::FETCH_ASSOC);
                 foreach (array_chunk($devices, 50) as $chunk) {
-                    foreach ($chunk as $d) {
-                        \Illuminate\Support\Facades\DB::table('devices')->updateOrInsert(['id' => $d['id']], $d);
-                    }
+                    \Illuminate\Support\Facades\DB::table('devices')->upsert($chunk, ['id']);
                 }
 
                 // Work Orders
                 $wos = $sqlite->query("SELECT * FROM work_orders")->fetchAll(\PDO::FETCH_ASSOC);
-                foreach ($wos as $w) {
-                    \Illuminate\Support\Facades\DB::table('work_orders')->updateOrInsert(['id' => $w['id']], $w);
+                foreach (array_chunk($wos, 50) as $chunk) {
+                    \Illuminate\Support\Facades\DB::table('work_orders')->upsert($chunk, ['id']);
                 }
 
                 // Device Histories
                 $histories = $sqlite->query("SELECT * FROM device_histories")->fetchAll(\PDO::FETCH_ASSOC);
                 foreach (array_chunk($histories, 50) as $chunk) {
-                    foreach ($chunk as $h) {
-                        \Illuminate\Support\Facades\DB::table('device_histories')->updateOrInsert(['id' => $h['id']], $h);
-                    }
+                    \Illuminate\Support\Facades\DB::table('device_histories')->upsert($chunk, ['id']);
                 }
 
                 // Reset Sequences di PostgreSQL
