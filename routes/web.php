@@ -196,6 +196,12 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                     \Illuminate\Support\Facades\DB::table('device_specifications')->upsert($chunk, ['id']);
                 }
 
+                // Pastikan constraint stock_status di PostgreSQL mencakup status HB JKT & CKR
+                if (config('database.default') === 'pgsql') {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE devices DROP CONSTRAINT IF EXISTS devices_stock_status_check;");
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE devices ADD CONSTRAINT devices_stock_status_check CHECK (stock_status IN ('tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta', 'dibawa_teknisi', 'terpasang_pelanggan', 'terinstal', 'pending', 'rusak', 'hilang', 'dismantle'));");
+                }
+
                 // Devices (243 unit lengkap)
                 $devices = $sqlite->query("SELECT * FROM devices")->fetchAll(\PDO::FETCH_ASSOC);
                 foreach (array_chunk($devices, 50) as $chunk) {

@@ -11,6 +11,10 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE devices MODIFY COLUMN stock_status ENUM('tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta', 'dibawa_teknisi', 'terpasang_pelanggan', 'terinstal', 'pending', 'rusak', 'hilang', 'dismantle') NOT NULL DEFAULT 'tersedia_hb_jkt'");
+        } elseif (DB::getDriverName() === 'pgsql') {
+            DB::statement("ALTER TABLE devices DROP CONSTRAINT IF EXISTS devices_stock_status_check;");
+            DB::statement("ALTER TABLE devices ADD CONSTRAINT devices_stock_status_check CHECK (stock_status IN ('tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta', 'dibawa_teknisi', 'terpasang_pelanggan', 'terinstal', 'pending', 'rusak', 'hilang', 'dismantle'));");
+            DB::statement("ALTER TABLE devices ALTER COLUMN stock_status SET DEFAULT 'tersedia_hb_jkt';");
         } elseif (DB::getDriverName() === 'sqlite') {
             DB::statement('PRAGMA foreign_keys = OFF;');
             DB::statement('
