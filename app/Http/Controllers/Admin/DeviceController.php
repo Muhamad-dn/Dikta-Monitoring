@@ -856,18 +856,32 @@ class DeviceController extends Controller
 
     public function stock(Request $request)
     {
+        $sum = Device::selectRaw("
+            count(*) as total,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_hb_jkt,
+            sum(case when stock_status = 'tersedia_hb_ckr' then 1 else 0 end) as tersedia_hb_ckr,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_pt,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_hb_dikta,
+            sum(case when stock_status = 'dibawa_teknisi' then 1 else 0 end) as dibawa_teknisi,
+            sum(case when stock_status in ('terpasang_pelanggan', 'terinstal') then 1 else 0 end) as terpasang_pelanggan,
+            sum(case when stock_status = 'pending' then 1 else 0 end) as pending,
+            sum(case when stock_status = 'rusak' then 1 else 0 end) as rusak,
+            sum(case when stock_status = 'hilang' then 1 else 0 end) as hilang,
+            sum(case when stock_status = 'dismantle' then 1 else 0 end) as dismantle
+        ")->first();
+
         $summary = [
-            'total' => Device::count(),
-            'tersedia_hb_jkt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'tersedia_hb_ckr' => Device::where('stock_status', 'tersedia_hb_ckr')->count(),
-            'tersedia_pt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'tersedia_hb_dikta' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'dibawa_teknisi' => Device::where('stock_status', 'dibawa_teknisi')->count(),
-            'terpasang_pelanggan' => Device::whereIn('stock_status', ['terpasang_pelanggan', 'terinstal'])->count(),
-            'pending' => Device::where('stock_status', 'pending')->count(),
-            'rusak' => Device::where('stock_status', 'rusak')->count(),
-            'hilang' => Device::where('stock_status', 'hilang')->count(),
-            'dismantle' => Device::where('stock_status', 'dismantle')->count(),
+            'total' => (int) ($sum->total ?? 0),
+            'tersedia_hb_jkt' => (int) ($sum->tersedia_hb_jkt ?? 0),
+            'tersedia_hb_ckr' => (int) ($sum->tersedia_hb_ckr ?? 0),
+            'tersedia_pt' => (int) ($sum->tersedia_pt ?? 0),
+            'tersedia_hb_dikta' => (int) ($sum->tersedia_hb_dikta ?? 0),
+            'dibawa_teknisi' => (int) ($sum->dibawa_teknisi ?? 0),
+            'terpasang_pelanggan' => (int) ($sum->terpasang_pelanggan ?? 0),
+            'pending' => (int) ($sum->pending ?? 0),
+            'rusak' => (int) ($sum->rusak ?? 0),
+            'hilang' => (int) ($sum->hilang ?? 0),
+            'dismantle' => (int) ($sum->dismantle ?? 0),
         ];
 
         $stockByType = Device::selectRaw("type, 

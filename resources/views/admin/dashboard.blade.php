@@ -16,7 +16,7 @@
             </a>
         </div>
         <div class="text-xs text-slate-500 font-medium">
-            Database: <span class="font-bold text-slate-800">SQLite (Aktif)</span>
+            Database: <span class="font-bold text-slate-800">{{ DB::getDriverName() === 'pgsql' ? 'Supabase PostgreSQL (Aktif)' : 'Database Cloud (Aktif)' }}</span>
         </div>
     </div>
 

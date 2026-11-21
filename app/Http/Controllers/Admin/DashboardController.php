@@ -12,22 +12,46 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $deviceStats = Device::selectRaw("
+            count(*) as total_devices,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as devices_at_hb_jkt,
+            sum(case when stock_status = 'tersedia_hb_ckr' then 1 else 0 end) as devices_at_hb_ckr,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as devices_at_hb_dikta,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as devices_at_pt,
+            sum(case when stock_status = 'dibawa_teknisi' then 1 else 0 end) as devices_with_tech,
+            sum(case when stock_status in ('terpasang_pelanggan', 'terinstal') then 1 else 0 end) as devices_installed,
+            sum(case when stock_status = 'pending' then 1 else 0 end) as devices_pending,
+            sum(case when stock_status = 'rusak' then 1 else 0 end) as devices_broken,
+            sum(case when stock_status = 'hilang' then 1 else 0 end) as devices_lost,
+            sum(case when stock_status = 'dismantle' then 1 else 0 end) as devices_dismantle
+        ")->first();
+
+        $techStats = User::where('role', 'teknisi')->selectRaw("
+            count(*) as total_technicians,
+            sum(case when status = 'active' then 1 else 0 end) as active_technicians
+        ")->first();
+
+        $woStats = WorkOrder::selectRaw("
+            count(*) as total_work_orders,
+            sum(case when status not in ('selesai', 'terinstal') then 1 else 0 end) as active_work_orders
+        ")->first();
+
         $stats = [
-            'total_devices' => Device::count(),
-            'devices_at_hb_jkt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'devices_at_hb_ckr' => Device::where('stock_status', 'tersedia_hb_ckr')->count(),
-            'devices_at_hb_dikta' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'devices_at_pt' => Device::whereIn('stock_status', ['tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta'])->count(),
-            'devices_with_tech' => Device::where('stock_status', 'dibawa_teknisi')->count(),
-            'devices_installed' => Device::whereIn('stock_status', ['terpasang_pelanggan', 'terinstal'])->count(),
-            'devices_pending' => Device::where('stock_status', 'pending')->count(),
-            'devices_broken' => Device::where('stock_status', 'rusak')->count(),
-            'devices_lost' => Device::where('stock_status', 'hilang')->count(),
-            'devices_dismantle' => Device::where('stock_status', 'dismantle')->count(),
-            'total_technicians' => User::where('role', 'teknisi')->count(),
-            'active_technicians' => User::where('role', 'teknisi')->where('status', 'active')->count(),
-            'total_work_orders' => WorkOrder::count(),
-            'active_work_orders' => WorkOrder::whereNotIn('status', ['selesai', 'terinstal'])->count(),
+            'total_devices' => (int) ($deviceStats->total_devices ?? 0),
+            'devices_at_hb_jkt' => (int) ($deviceStats->devices_at_hb_jkt ?? 0),
+            'devices_at_hb_ckr' => (int) ($deviceStats->devices_at_hb_ckr ?? 0),
+            'devices_at_hb_dikta' => (int) ($deviceStats->devices_at_hb_dikta ?? 0),
+            'devices_at_pt' => (int) ($deviceStats->devices_at_pt ?? 0),
+            'devices_with_tech' => (int) ($deviceStats->devices_with_tech ?? 0),
+            'devices_installed' => (int) ($deviceStats->devices_installed ?? 0),
+            'devices_pending' => (int) ($deviceStats->devices_pending ?? 0),
+            'devices_broken' => (int) ($deviceStats->devices_broken ?? 0),
+            'devices_lost' => (int) ($deviceStats->devices_lost ?? 0),
+            'devices_dismantle' => (int) ($deviceStats->devices_dismantle ?? 0),
+            'total_technicians' => (int) ($techStats->total_technicians ?? 0),
+            'active_technicians' => (int) ($techStats->active_technicians ?? 0),
+            'total_work_orders' => (int) ($woStats->total_work_orders ?? 0),
+            'active_work_orders' => (int) ($woStats->active_work_orders ?? 0),
         ];
 
         $statusFilter = request('status', 'dibawa_teknisi');

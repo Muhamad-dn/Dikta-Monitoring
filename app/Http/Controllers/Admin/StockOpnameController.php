@@ -32,9 +32,14 @@ class StockOpnameController extends Controller
 
         $opnames = $query->paginate(10)->withQueryString();
 
+        $opnameCounts = StockOpname::selectRaw("
+            sum(case when status = 'completed' then 1 else 0 end) as total_completed,
+            sum(case when status = 'in_progress' then 1 else 0 end) as total_in_progress
+        ")->first();
+
         $stats = [
-            'total_completed' => StockOpname::where('status', 'completed')->count(),
-            'total_in_progress' => StockOpname::where('status', 'in_progress')->count(),
+            'total_completed' => (int) ($opnameCounts->total_completed ?? 0),
+            'total_in_progress' => (int) ($opnameCounts->total_in_progress ?? 0),
             'last_opname' => StockOpname::where('status', 'completed')->latest('completed_at')->first(),
         ];
 
@@ -67,11 +72,18 @@ class StockOpnameController extends Controller
 
             $activeItems = $itemsQuery->paginate(30, ['*'], 'items_page')->withQueryString();
 
+            $itemCounts = $activeOpname->items()->selectRaw("
+                count(*) as total_all,
+                sum(case when physical_status = 'matched' then 1 else 0 end) as total_matched,
+                sum(case when physical_status = 'missing' then 1 else 0 end) as total_missing,
+                sum(case when physical_status in ('wrong_location', 'surplus_unregistered') then 1 else 0 end) as total_anomaly
+            ")->first();
+
             $activeCounts = [
-                'all' => $activeOpname->items()->count(),
-                'matched' => $activeOpname->items()->where('physical_status', 'matched')->count(),
-                'missing' => $activeOpname->items()->where('physical_status', 'missing')->count(),
-                'anomaly' => $activeOpname->items()->whereIn('physical_status', ['wrong_location', 'surplus_unregistered'])->count(),
+                'all' => (int) ($itemCounts->total_all ?? 0),
+                'matched' => (int) ($itemCounts->total_matched ?? 0),
+                'missing' => (int) ($itemCounts->total_missing ?? 0),
+                'anomaly' => (int) ($itemCounts->total_anomaly ?? 0),
             ];
         }
 

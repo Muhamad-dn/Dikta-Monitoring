@@ -55,6 +55,9 @@
     <!-- HTML5-QRCode Scanner -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
+    <!-- Instant.page for instant page clicks and background prefetching -->
+    <script src="https://cdn.jsdelivr.net/npm/instant.page@5.2.0/instantpage.min.js" type="module"></script>
+
     <style>
         [x-cloak] { display: none !important; }
 
