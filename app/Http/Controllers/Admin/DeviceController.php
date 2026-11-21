@@ -870,17 +870,17 @@ class DeviceController extends Controller
             'dismantle' => Device::where('stock_status', 'dismantle')->count(),
         ];
 
-        $stockByType = Device::selectRaw('type, 
+        $stockByType = Device::selectRaw("type, 
             count(*) as total, 
-            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_jkt,
-            sum(case when stock_status = "tersedia_hb_ckr" then 1 else 0 end) as tersedia_ckr,
-            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_hb_ckr", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_pt,
-            sum(case when stock_status = "dibawa_teknisi" then 1 else 0 end) as dibawa_teknisi,
-            sum(case when stock_status in ("terpasang_pelanggan", "terinstal") then 1 else 0 end) as terpasang_pelanggan,
-            sum(case when stock_status = "pending" then 1 else 0 end) as pending,
-            sum(case when stock_status = "rusak" then 1 else 0 end) as rusak,
-            sum(case when stock_status = "hilang" then 1 else 0 end) as hilang,
-            sum(case when stock_status = "dismantle" then 1 else 0 end) as dismantle')
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_jkt,
+            sum(case when stock_status = 'tersedia_hb_ckr' then 1 else 0 end) as tersedia_ckr,
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_pt,
+            sum(case when stock_status = 'dibawa_teknisi' then 1 else 0 end) as dibawa_teknisi,
+            sum(case when stock_status in ('terpasang_pelanggan', 'terinstal') then 1 else 0 end) as terpasang_pelanggan,
+            sum(case when stock_status = 'pending' then 1 else 0 end) as pending,
+            sum(case when stock_status = 'rusak' then 1 else 0 end) as rusak,
+            sum(case when stock_status = 'hilang' then 1 else 0 end) as hilang,
+            sum(case when stock_status = 'dismantle' then 1 else 0 end) as dismantle")
             ->groupBy('type')
             ->get();
 

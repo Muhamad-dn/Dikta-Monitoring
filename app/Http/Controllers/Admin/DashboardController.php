@@ -95,15 +95,15 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        $stockRecap = Device::selectRaw('type, count(*) as total, 
-            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia_jkt, 
-            sum(case when stock_status = "tersedia_hb_ckr" then 1 else 0 end) as tersedia_ckr, 
-            sum(case when stock_status in ("tersedia_hb_jkt", "tersedia_hb_ckr", "tersedia_pt", "tersedia_hb_dikta") then 1 else 0 end) as tersedia, 
-            sum(case when stock_status = "dibawa_teknisi" then 1 else 0 end) as di_lapangan,
-            sum(case when stock_status in ("terpasang_pelanggan", "terinstal") then 1 else 0 end) as terinstal,
-            sum(case when stock_status = "pending" then 1 else 0 end) as pending,
-            sum(case when stock_status = "rusak" then 1 else 0 end) as rusak,
-            sum(case when stock_status = "hilang" then 1 else 0 end) as hilang')
+        $stockRecap = Device::selectRaw("type, count(*) as total, 
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia_jkt, 
+            sum(case when stock_status = 'tersedia_hb_ckr' then 1 else 0 end) as tersedia_ckr, 
+            sum(case when stock_status in ('tersedia_hb_jkt', 'tersedia_hb_ckr', 'tersedia_pt', 'tersedia_hb_dikta') then 1 else 0 end) as tersedia, 
+            sum(case when stock_status = 'dibawa_teknisi' then 1 else 0 end) as di_lapangan,
+            sum(case when stock_status in ('terpasang_pelanggan', 'terinstal') then 1 else 0 end) as terinstal,
+            sum(case when stock_status = 'pending' then 1 else 0 end) as pending,
+            sum(case when stock_status = 'rusak' then 1 else 0 end) as rusak,
+            sum(case when stock_status = 'hilang' then 1 else 0 end) as hilang")
             ->groupBy('type')
             ->get();
 

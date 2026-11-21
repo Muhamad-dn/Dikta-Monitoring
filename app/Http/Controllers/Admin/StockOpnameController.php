@@ -61,7 +61,7 @@ class StockOpnameController extends Controller
                 $itemsQuery->where(function ($q) use ($keyword) {
                     $q->whereRaw('LOWER(registration_number) LIKE ?', [$keyword])
                       ->orWhereRaw('LOWER(device_name) LIKE ?', [$keyword])
-                      ->orWhereRaw('LOWER(COALESCE(area, "")) LIKE ?', [$keyword]);
+                      ->orWhereRaw("LOWER(COALESCE(area, '')) LIKE ?", [$keyword]);
                 });
             }
 
@@ -281,7 +281,7 @@ class StockOpnameController extends Controller
             $itemsQuery->where(function ($q) use ($keyword) {
                 $q->whereRaw('LOWER(registration_number) LIKE ?', [$keyword])
                   ->orWhereRaw('LOWER(device_name) LIKE ?', [$keyword])
-                  ->orWhereRaw('LOWER(COALESCE(area, "")) LIKE ?', [$keyword]);
+                  ->orWhereRaw("LOWER(COALESCE(area, '')) LIKE ?", [$keyword]);
             });
         }
 
