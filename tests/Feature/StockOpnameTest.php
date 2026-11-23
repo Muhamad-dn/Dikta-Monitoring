@@ -345,6 +345,56 @@ class StockOpnameTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_submit_existing_external_device_through_so_form()
+    {
+        $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
+        ]);
+
+        $opname = StockOpname::first();
+
+        // Buat perangkat yang sedang dibawa teknisi
+        $existingDevice = Device::create([
+            'registration_number' => 'EXIST-TECH-777',
+            'name' => 'Existing Tech Router',
+            'serial_number' => 'SN-TECH-777',
+            'brand' => 'Mikrotik',
+            'stock_status' => 'dibawa_teknisi',
+            'current_technician_id' => $this->teknisi->id,
+            'current_location' => 'Lapangan',
+        ]);
+
+        // Kirim lewat form SO (register-new) dengan warehouse_hub hb_ckr
+        $response = $this->actingAs($this->admin)->postJson(route('admin.stock-opname.register-new', $opname), [
+            'registration_number' => 'EXIST-TECH-777',
+            'name' => 'Existing Tech Router Updated',
+            'area' => 'BWA',
+            'warehouse_hub' => 'hb_ckr',
+            'notes' => 'Ditemukan fisik saat SO dan dipindahkan ke CKR',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+
+        $existingDevice->refresh();
+        $this->assertEquals('tersedia_hb_ckr', $existingDevice->stock_status);
+        $this->assertNull($existingDevice->current_technician_id);
+        $this->assertEquals('Gudang HB Cikarang', $existingDevice->current_location);
+        $this->assertEquals('BWA', $existingDevice->area);
+
+        $this->assertDatabaseHas('stock_opname_items', [
+            'stock_opname_id' => $opname->id,
+            'device_id' => $existingDevice->id,
+            'registration_number' => 'EXIST-TECH-777',
+            'physical_status' => 'matched',
+        ]);
+    }
+
     public function test_admin_can_search_external_devices()
     {
         $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
