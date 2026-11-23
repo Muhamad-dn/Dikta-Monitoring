@@ -41,12 +41,13 @@
         }
     </style>
 </head>
-<body class="min-h-full font-sans antialiased bg-gradient-to-br from-slate-50 via-slate-100/70 to-red-50/20 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 relative overflow-x-hidden selection:bg-[#F71616] selection:text-white">
+<body class="min-h-full font-sans antialiased flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 relative overflow-x-hidden selection:bg-[#F71616] selection:text-white"
+      style="background-color: #090a0f; background-image: radial-gradient(ellipse 85% 72% at 50% 45%, #ffffff 0%, #f8fafc 42%, rgba(248, 250, 252, 0.92) 60%, rgba(248, 250, 252, 0.25) 80%, transparent 100%), linear-gradient(135deg, #050609 0%, #0f1117 22%, #181d27 38%, #881337 68%, #dc2626 85%, #F71616 100%); background-attachment: fixed;">
 
-    <!-- Ambient Luxury Glowing Backdrops for Contrast and Depth -->
-    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[760px] h-[460px] bg-gradient-to-b from-[#F71616]/10 via-slate-900/5 to-transparent blur-3xl pointer-events-none rounded-full"></div>
-    <div class="fixed -bottom-40 -left-40 w-96 h-96 bg-[#F71616]/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="fixed -top-40 -right-40 w-96 h-96 bg-slate-900/5 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Ambient Luxury Glowing Backdrops for Contrast and Depth (Hitam, Putih, Merah) -->
+    <div class="fixed -top-28 -left-28 w-[460px] h-[460px] bg-black/60 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed top-1/4 left-1/2 -translate-x-1/2 w-[760px] h-[480px] bg-white/40 blur-3xl rounded-full pointer-events-none"></div>
+    <div class="fixed -bottom-28 -right-28 w-[540px] h-[540px] bg-[#F71616]/30 rounded-full blur-3xl pointer-events-none"></div>
     <div class="fixed inset-0 bg-[radial-gradient(#111827_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.035] pointer-events-none"></div>
 
     <!-- Header Logo & Brand: Isolated Logo Without Background Card -->
@@ -54,7 +55,7 @@
         <div class="flex items-center justify-center">
             <img src="{{ asset('images/devtrack-dt-icon.png') }}" 
                  alt="DEVTRACK Logo" 
-                 class="w-24 sm:w-28 h-auto drop-shadow-[0_8px_20px_rgba(247,22,22,0.18)] transition-transform duration-300 hover:scale-105">
+                 class="w-24 sm:w-28 h-auto drop-shadow-[0_10px_22px_rgba(247,22,22,0.22)] transition-transform duration-300 hover:scale-105">
         </div>
         <div class="mt-3">
             <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-none">
@@ -68,7 +69,7 @@
 
     <!-- Form Container Card -->
     <div class="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 relative z-10">
-        <div class="bg-white/95 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-2xl shadow-slate-900/10 rounded-2xl border border-slate-200/90 ring-1 ring-slate-900/5">
+        <div class="bg-white/95 backdrop-blur-2xl py-8 px-6 sm:px-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.22),0_10px_25px_-10px_rgba(247,22,22,0.18)] rounded-2xl border border-white/80 ring-1 ring-slate-900/5">
 
             @if(session('error'))
                 <div class="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2.5">
