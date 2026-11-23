@@ -37,11 +37,28 @@
                     @forelse($technicians as $tech)
                         <tr class="hover:bg-slate-50/80 transition-colors">
                             <td class="px-6 py-4">
-                                <button type="button" 
-                                        @click="openModal(@js($tech->name), @js($tech->phone), @js($tech->carriedDevices))"
-                                        class="font-bold text-slate-900 text-sm hover:text-brand-600 transition-colors cursor-pointer text-left focus:outline-none">
-                                    {{ $tech->name }}
-                                </button>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs shrink-0 shadow-2xs">
+                                        {{ strtoupper(substr($tech->name, 0, 2)) }}
+                                    </div>
+                                    <div>
+                                        <button type="button" 
+                                                @click="openModal(@js($tech->name), @js($tech->phone), @js($tech->carriedDevices))"
+                                                class="font-bold text-slate-900 text-sm hover:text-brand-600 transition-colors cursor-pointer text-left focus:outline-none block">
+                                            {{ $tech->name }}
+                                        </button>
+                                        <div class="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                                            <span class="inline-flex items-center gap-1 font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded-md" title="Username login teknisi">
+                                                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                                <span>{{ $tech->username }}</span>
+                                            </span>
+                                            @if($tech->email)
+                                                <span class="text-slate-300">&bull;</span>
+                                                <span class="truncate max-w-[150px] text-slate-500">{{ $tech->email }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="font-semibold text-slate-800">{{ $tech->phone }}</div>

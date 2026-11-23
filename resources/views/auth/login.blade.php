@@ -97,11 +97,12 @@
 
                 <div>
                     <label for="username" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Username
+                        Username / No. HP / Email
                     </label>
                     <div class="relative">
                         <input id="username" name="username" type="text" required value="{{ old('username') }}" autocomplete="username"
-                               placeholder="Masukkan username akun Anda"
+                               autocapitalize="none" autocorrect="off" spellcheck="false"
+                               placeholder="Masukkan username, No. HP, atau email"
                                class="w-full px-4 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#F71616]/25 focus:border-[#F71616] focus:bg-white transition-all font-medium">
                     </div>
                     @error('username')

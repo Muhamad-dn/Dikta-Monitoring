@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -23,34 +25,47 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $loginInput = trim($request->input('username'));
+        $rawInput = trim($request->input('username'));
+        $cleanInput = strtolower(str_replace(' ', '', $rawInput));
         $password = $request->input('password');
-        $field = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-
-        $credentials = [
-            $field => $loginInput,
-            'password' => $password,
-        ];
-
         $remember = $request->filled('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
-            $user = Auth::user();
+        // Cari user yang cocok (case-insensitive & toleran format) berdasarkan:
+        // 1. Username (case-insensitive & tanpa spasi)
+        // 2. Email (case-insensitive)
+        // 3. No. HP / WhatsApp (format asli maupun digit murni)
+        // 4. Nama lengkap (case-insensitive)
+        $user = User::where(function ($q) use ($rawInput, $cleanInput) {
+            $q->whereRaw('LOWER(username) = ?', [$cleanInput])
+              ->orWhereRaw('LOWER(username) = ?', [strtolower($rawInput)])
+              ->orWhereRaw('LOWER(email) = ?', [strtolower($rawInput)])
+              ->orWhere('phone', $rawInput);
 
+            $digitsOnly = preg_replace('/[^0-9]/', '', $rawInput);
+            if (!empty($digitsOnly) && strlen($digitsOnly) >= 7) {
+                $trimmedLeadingZero = ltrim($digitsOnly, '0');
+                $q->orWhere('phone', 'like', "%{$digitsOnly}%")
+                  ->orWhere('phone', 'like', "%{$trimmedLeadingZero}%");
+            }
+
+            $q->orWhereRaw('LOWER(name) = ?', [strtolower($rawInput)]);
+        })->first();
+
+        if ($user && Hash::check($password, $user->password)) {
             if ($user->status !== 'active') {
-                Auth::logout();
                 return back()->withErrors([
                     'username' => 'Akun Anda dinonaktifkan. Silakan hubungi Administrator.',
                 ])->withInput($request->only('username'));
             }
 
+            Auth::login($user, $remember);
             $request->session()->regenerate();
 
             return $this->redirectBasedOnRole($user);
         }
 
         return back()->withErrors([
-            'username' => 'Username/Email atau kata sandi tidak sesuai.',
+            'username' => 'Username, No. HP/Email, atau kata sandi tidak sesuai.',
         ])->withInput($request->only('username'));
     }
 

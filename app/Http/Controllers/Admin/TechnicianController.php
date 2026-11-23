@@ -97,6 +97,13 @@ class TechnicianController extends Controller
             abort(404);
         }
 
+        if ($request->has('username')) {
+            $request->merge(['username' => strtolower(trim(str_replace(' ', '', (string)$request->username)))]);
+        }
+        if ($request->has('email') && empty(trim((string)$request->email))) {
+            $request->merge(['email' => null]);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'username' => ['required', 'string', 'max:50', Rule::unique('users')->ignore($technician->id)],

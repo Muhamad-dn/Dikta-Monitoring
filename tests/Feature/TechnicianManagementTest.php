@@ -100,4 +100,102 @@ class TechnicianManagementTest extends TestCase
 
         $response->assertSessionHasErrors('password');
     }
+
+    public function test_newly_created_technician_can_login_with_uppercase_username()
+    {
+        $admin = User::where('role', 'admin')->first();
+
+        // 1. Admin creates new technician
+        $this->actingAs($admin)->post(route('admin.technicians.store'), [
+            'name' => 'Bayu Wicaksono',
+            'username' => 'bayu_wicak',
+            'phone' => '081311223344',
+            'email' => 'bayu@ptdikta.co.id',
+            'password' => 'bayu12345',
+            'password_confirmation' => 'bayu12345',
+        ]);
+
+        // Logout admin
+        auth()->logout();
+
+        // 2. Technician logs in with uppercase input (e.g. from smartphone auto-capitalization: Bayu_Wicak)
+        $loginResponse = $this->post(route('login.post'), [
+            'username' => 'Bayu_Wicak',
+            'password' => 'bayu12345',
+        ]);
+
+        $loginResponse->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('bayu_wicak', auth()->user()->username);
+
+        // 3. Access technician dashboard successfully
+        $dashResponse = $this->get(route('technician.dashboard'));
+        $dashResponse->assertStatus(200);
+        $dashResponse->assertSee('Bayu Wicaksono');
+    }
+
+    public function test_technician_can_login_using_phone_number()
+    {
+        $admin = User::where('role', 'admin')->first();
+
+        $this->actingAs($admin)->post(route('admin.technicians.store'), [
+            'name' => 'Agus Santoso',
+            'username' => 'agus_san',
+            'phone' => '081298765432',
+            'password' => 'agus12345',
+            'password_confirmation' => 'agus12345',
+        ]);
+
+        auth()->logout();
+
+        // Login using phone number instead of username
+        $loginResponse = $this->post(route('login.post'), [
+            'username' => '081298765432',
+            'password' => 'agus12345',
+        ]);
+
+        $loginResponse->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('agus_san', auth()->user()->username);
+    }
+
+    public function test_technician_can_login_using_email_with_mixed_case()
+    {
+        $admin = User::where('role', 'admin')->first();
+
+        $this->actingAs($admin)->post(route('admin.technicians.store'), [
+            'name' => 'Chandra Wijaya',
+            'username' => 'chandra_w',
+            'phone' => '081244556677',
+            'email' => 'chandra@ptdikta.co.id',
+            'password' => 'chandra123',
+            'password_confirmation' => 'chandra123',
+        ]);
+
+        auth()->logout();
+
+        // Login using email with mixed case
+        $loginResponse = $this->post(route('login.post'), [
+            'username' => 'Chandra@PTDikta.Co.Id',
+            'password' => 'chandra123',
+        ]);
+
+        $loginResponse->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('chandra_w', auth()->user()->username);
+    }
+
+    public function test_inactive_technician_cannot_login()
+    {
+        $tech = User::where('username', 'budi')->first();
+        $tech->update(['status' => 'inactive']);
+
+        $response = $this->post(route('login.post'), [
+            'username' => 'budi',
+            'password' => 'password',
+        ]);
+
+        $response->assertSessionHasErrors('username');
+        $this->assertGuest();
+    }
 }
