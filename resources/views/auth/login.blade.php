@@ -44,10 +44,17 @@
 <body class="min-h-full font-sans antialiased flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 relative overflow-x-hidden selection:bg-[#F71616] selection:text-white"
       style="background-color: #090a0f; background-image: radial-gradient(ellipse 85% 72% at 50% 45%, #ffffff 0%, #f8fafc 42%, rgba(248, 250, 252, 0.92) 60%, rgba(248, 250, 252, 0.25) 80%, transparent 100%), linear-gradient(135deg, #050609 0%, #0f1117 22%, #181d27 38%, #881337 68%, #dc2626 85%, #F71616 100%); background-attachment: fixed;">
 
+    <!-- Background Image Layer (Telecom & Global Tracking) with 50% Opacity -->
+    <div class="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden">
+        <img src="{{ asset('images/login-bg.jpg') }}" 
+             alt="Login Background" 
+             class="w-full h-full object-cover object-center opacity-50">
+    </div>
+
     <!-- Ambient Luxury Glowing Backdrops for Contrast and Depth (Hitam, Putih, Merah) -->
-    <div class="fixed -top-28 -left-28 w-[460px] h-[460px] bg-black/60 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -top-28 -left-28 w-[460px] h-[460px] bg-black/50 rounded-full blur-3xl pointer-events-none"></div>
     <div class="fixed top-1/4 left-1/2 -translate-x-1/2 w-[760px] h-[480px] bg-white/40 blur-3xl rounded-full pointer-events-none"></div>
-    <div class="fixed -bottom-28 -right-28 w-[540px] h-[540px] bg-[#F71616]/30 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -bottom-28 -right-28 w-[540px] h-[540px] bg-[#F71616]/25 rounded-full blur-3xl pointer-events-none"></div>
     <div class="fixed inset-0 bg-[radial-gradient(#111827_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.035] pointer-events-none"></div>
 
     <!-- Header Logo & Brand: Isolated Logo Without Background Card -->
