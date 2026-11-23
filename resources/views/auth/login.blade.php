@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="PT DIKTA">
     <title>Login - DEVTRACK</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/devtrack-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/devtrack-dt-icon.png') }}">
 
     <!-- Google Fonts: Inter (Clean Normal UI for letters & numbers), JetBrains Mono (Codes) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,18 +26,9 @@
                         mono: ['"JetBrains Mono"', 'monospace'],
                     },
                     colors: {
-                        petrol: {
-                            50: '#f0f7f8',
-                            100: '#e1eff1',
-                            200: '#c3dfe3',
-                            300: '#94c5cd',
-                            400: '#5da3af',
-                            500: '#3c8592',
-                            600: '#2c6975',
-                            700: '#23535d',
-                            800: '#1c424a',
-                            900: '#0e3c46',
-                            950: '#07242a',
+                        brand: {
+                            red: '#F71616',
+                            black: '#0f172a',
                         }
                     }
                 }
@@ -50,27 +41,34 @@
         }
     </style>
 </head>
-<body class="min-h-full font-sans antialiased bg-gradient-to-br from-slate-50 via-[#f0f6f8] to-[#e1edf0] flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 relative overflow-x-hidden selection:bg-[#0e3c46] selection:text-white">
+<body class="min-h-full font-sans antialiased bg-gradient-to-br from-slate-50 via-slate-100/70 to-red-50/20 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-800 relative overflow-x-hidden selection:bg-[#F71616] selection:text-white">
 
     <!-- Ambient Luxury Glowing Backdrops for Contrast and Depth -->
-    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[760px] h-[460px] bg-gradient-to-b from-[#2c6975]/15 via-[#5da3af]/8 to-transparent blur-3xl pointer-events-none rounded-full"></div>
-    <div class="fixed -bottom-40 -left-40 w-96 h-96 bg-[#3c8592]/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="fixed -top-40 -right-40 w-96 h-96 bg-[#94c5cd]/15 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="fixed inset-0 bg-[radial-gradient(#0e3c46_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.035] pointer-events-none"></div>
+    <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[760px] h-[460px] bg-gradient-to-b from-[#F71616]/10 via-slate-900/5 to-transparent blur-3xl pointer-events-none rounded-full"></div>
+    <div class="fixed -bottom-40 -left-40 w-96 h-96 bg-[#F71616]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed -top-40 -right-40 w-96 h-96 bg-slate-900/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="fixed inset-0 bg-[radial-gradient(#111827_1px,transparent_1px)] [background-size:24px_24px] opacity-[0.035] pointer-events-none"></div>
 
     <!-- Header Logo & Brand: Isolated Logo Without Background Card -->
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center px-4 relative z-10">
         <div class="flex items-center justify-center">
-            <img src="{{ asset('images/devtrack-logo.png') }}" 
+            <img src="{{ asset('images/devtrack-dt-icon.png') }}" 
                  alt="DEVTRACK Logo" 
-                 class="w-64 sm:w-72 h-auto drop-shadow-[0_10px_24px_rgba(14,60,70,0.14)] transition-transform duration-300 hover:scale-105">
+                 class="w-24 sm:w-28 h-auto drop-shadow-[0_8px_20px_rgba(247,22,22,0.18)] transition-transform duration-300 hover:scale-105">
         </div>
-        <p class="text-xs sm:text-sm text-[#0e3c46] font-bold tracking-[0.25em] mt-1.5 uppercase">Device Tracking System</p>
+        <div class="mt-3">
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-none">
+                DEV<span class="text-[#F71616]">TRACK</span>
+            </h1>
+            <p class="text-xs sm:text-[13px] font-bold tracking-[0.25em] text-slate-600 mt-2 uppercase">
+                Device Tracking System
+            </p>
+        </div>
     </div>
 
     <!-- Form Container Card -->
     <div class="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 relative z-10">
-        <div class="bg-white/95 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-2xl shadow-slate-400/20 rounded-2xl border border-slate-200/90 ring-1 ring-slate-900/5">
+        <div class="bg-white/95 backdrop-blur-xl py-8 px-6 sm:px-10 shadow-2xl shadow-slate-900/10 rounded-2xl border border-slate-200/90 ring-1 ring-slate-900/5">
 
             @if(session('error'))
                 <div class="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2.5">
@@ -96,7 +94,7 @@
                     <div class="relative">
                         <input id="username" name="username" type="text" required value="{{ old('username') }}" autocomplete="username"
                                placeholder="Masukkan username akun Anda"
-                               class="w-full px-4 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#0e3c46] focus:border-[#0e3c46] focus:bg-white transition-all font-medium">
+                               class="w-full px-4 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#F71616]/25 focus:border-[#F71616] focus:bg-white transition-all font-medium">
                     </div>
                     @error('username')
                         <p class="mt-1.5 text-xs text-rose-500">{{ $message }}</p>
@@ -110,7 +108,7 @@
                     <div class="relative">
                         <input id="password" name="password" type="password" required autocomplete="current-password"
                                placeholder="Masukkan kata sandi"
-                               class="w-full pl-4 pr-11 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#0e3c46] focus:border-[#0e3c46] focus:bg-white transition-all font-medium">
+                               class="w-full pl-4 pr-11 py-3 bg-slate-50/70 border border-slate-300 rounded-xl text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-[#F71616]/25 focus:border-[#F71616] focus:bg-white transition-all font-medium">
                         <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-700 transition-colors focus:outline-none" title="Lihat / Sembunyikan kata sandi">
                             <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -125,7 +123,7 @@
 
                 <div class="flex items-center justify-between text-xs">
                     <label class="flex items-center text-slate-600 cursor-pointer select-none">
-                        <input type="checkbox" name="remember" class="w-4 h-4 rounded bg-white border-slate-300 text-[#0e3c46] focus:ring-[#0e3c46]">
+                        <input type="checkbox" name="remember" class="w-4 h-4 rounded bg-white border-slate-300 text-[#F71616] focus:ring-[#F71616]">
                         <span class="ml-2">Ingat sesi saya</span>
                     </label>
                     <span class="text-slate-500 text-[11px] flex items-center gap-1">
@@ -138,7 +136,7 @@
 
                 <div>
                     <button type="submit" id="loginBtn"
-                            class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#07282f] via-[#0e3c46] to-[#1a5561] hover:from-[#051c21] hover:to-[#0e3c46] text-white font-bold text-sm shadow-lg shadow-[#0e3c46]/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0e3c46] transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-80 disabled:cursor-wait">
+                            class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-slate-950 via-slate-900 to-[#F71616] hover:from-black hover:via-slate-950 hover:to-[#d01010] text-white font-bold text-sm shadow-lg shadow-[#F71616]/25 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F71616] transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-80 disabled:cursor-wait">
                         <svg id="loginBtnSpinner" class="hidden w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -154,7 +152,7 @@
         </div>
 
         <p class="mt-6 text-center text-xs font-semibold text-slate-500 tracking-wider">
-            &copy; {{ date('Y') }} DEVTRACK
+            &copy; {{ date('Y') }} DEV<span class="text-[#F71616]">TRACK</span> &bull; Device Tracking System
         </p>
     </div>
 
