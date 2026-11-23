@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'Monitoring Teknisi') - DEVTRACK &bull; PT DIKTA</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/devtrack-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/devtrack-dt-icon.png') }}">
 
     <!-- Google Fonts: Inter (Clean Normal UI for letters & numbers), JetBrains Mono (Codes) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -253,14 +253,25 @@
     <aside :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'" 
            class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col transition-transform duration-200 ease-in-out md:translate-x-0 md:static md:w-64 shrink-0 shadow-xl">
         
-        <!-- Header Brand: Tanpa Background, Hanya Logo & Nama DEVTRACK Saja -->
-        <div class="py-3 px-4 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+        <!-- Header Brand: Logo DT Baru & DEVTRACK Typography -->
+        <div class="py-3 px-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
             <a href="{{ auth()->user()->role === 'admin' ? route('admin.dashboard') : (auth()->user()->role === 'koordinator' ? route('coordinator.dashboard') : route('technician.dashboard')) }}" 
                title="Kembali ke Dashboard Utama"
-               class="flex items-center transition-transform hover:scale-105">
-                <img src="{{ asset('images/devtrack-logo-dark.png') }}" 
-                     alt="DEVTRACK" 
-                     class="h-12 w-auto object-contain drop-shadow-[0_2px_10px_rgba(34,211,238,0.2)]">
+               class="flex items-center gap-2.5 transition-transform hover:scale-102">
+                <!-- White backdrop badge for 100% sharp brand logo contrast (never clashes) -->
+                <div class="h-10 w-10 p-1.5 bg-white rounded-xl shadow-xs border border-slate-200/90 flex items-center justify-center shrink-0">
+                    <img src="{{ asset('images/devtrack-dt-icon.png') }}" 
+                         alt="DEVTRACK Logo" 
+                         class="h-full w-auto object-contain">
+                </div>
+                <div class="flex flex-col min-w-0">
+                    <div class="text-base font-black tracking-tight text-white leading-none">
+                        DEV<span class="text-[#F71616]">TRACK</span>
+                    </div>
+                    <div class="text-[9px] font-bold tracking-[0.18em] text-slate-400 uppercase mt-1 truncate">
+                        Device Tracking
+                    </div>
+                </div>
             </a>
             <button @click="mobileMenuOpen = false" class="md:hidden text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -271,7 +282,7 @@
         <div class="px-5 py-3 border-b border-slate-800/80 bg-slate-900/50 flex items-center justify-between">
             <span class="text-[10px] uppercase font-bold text-slate-400">Login Sebagai:</span>
             @if(auth()->user()->role === 'admin')
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">ADMIN</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">ADMIN</span>
             @elseif(auth()->user()->role === 'koordinator')
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">KOORDINATOR</span>
             @else
@@ -284,38 +295,37 @@
 
             @if(auth()->user()->role === 'admin')
                 <a href="{{ route('admin.dashboard') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                     <span>Dashboard Utama</span>
                 </a>
 
                 <a href="{{ route('admin.devices.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.devices.*') && !request()->routeIs('admin.devices.stock') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.devices.*') && !request()->routeIs('admin.devices.stock') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                     <span>Data Perangkat</span>
                 </a>
 
                 <a href="{{ route('admin.devices.stock') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.devices.stock') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.devices.stock') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                     <span>Stok Gudang HB</span>
                 </a>
 
                 <a href="{{ route('admin.stock-opname.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.stock-opname.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.stock-opname.*') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                     <span>Stock Opname</span>
                 </a>
 
-
                 <a href="{{ route('admin.technicians.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.technicians.*') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.technicians.*') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <span>Kelola Teknisi</span>
                 </a>
 
                 <a href="{{ route('admin.history.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.history.index') ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.history.index') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>Riwayat Perpindahan</span>
                 </a>
@@ -398,9 +408,11 @@
                     <button @click="mobileMenuOpen = true" class="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
-                    <a href="{{ auth()->user()->role === 'admin' ? route('admin.dashboard') : (auth()->user()->role === 'koordinator' ? route('coordinator.dashboard') : route('technician.dashboard')) }}" class="md:hidden flex items-center">
-                        <img src="{{ asset('images/devtrack-logo.png') }}" alt="DEVTRACK Logo" class="h-8 w-auto object-contain dark:hidden">
-                        <img src="{{ asset('images/devtrack-logo-white.png') }}" alt="DEVTRACK Logo" class="h-8 w-auto object-contain hidden dark:inline">
+                    <a href="{{ auth()->user()->role === 'admin' ? route('admin.dashboard') : (auth()->user()->role === 'koordinator' ? route('coordinator.dashboard') : route('technician.dashboard')) }}" class="md:hidden flex items-center gap-2">
+                        <div class="h-8 w-8 p-1 bg-white rounded-lg shadow-2xs border border-slate-200 flex items-center justify-center shrink-0">
+                            <img src="{{ asset('images/devtrack-dt-icon.png') }}" alt="DEVTRACK Logo" class="h-full w-auto object-contain">
+                        </div>
+                        <span class="text-sm font-black text-slate-900 dark:text-white leading-none">DEV<span class="text-[#F71616]">TRACK</span></span>
                     </a>
                     <div>
                         <h1 class="text-sm font-bold text-slate-900 dark:text-white leading-tight">
@@ -648,9 +660,10 @@
         @if(auth()->user()->role !== 'teknisi')
         <!-- FOOTER: Identitas DEVTRACK Seragam dengan Halaman Login -->
         <footer class="px-4 sm:px-6 py-3 border-t border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 text-center text-xs text-slate-500 dark:text-slate-400 mt-auto flex items-center justify-center gap-2 transition-colors">
-            <img src="{{ asset('images/devtrack-logo.png') }}" alt="DEVTRACK Logo" class="h-4 w-auto object-contain opacity-75 dark:hidden">
-            <img src="{{ asset('images/devtrack-logo-white.png') }}" alt="DEVTRACK Logo" class="h-4 w-auto object-contain opacity-75 hidden dark:inline">
-            <span>&copy; {{ date('Y') }} DEVTRACK &bull; Device Tracking System</span>
+            <div class="h-5 w-5 p-0.5 bg-white rounded shadow-2xs inline-flex items-center justify-center shrink-0 border border-slate-200/50">
+                <img src="{{ asset('images/devtrack-dt-icon.png') }}" alt="DEVTRACK Logo" class="h-full w-auto object-contain">
+            </div>
+            <span>&copy; {{ date('Y') }} DEV<span class="text-[#F71616]">TRACK</span> &bull; Device Tracking System</span>
         </footer>
         @endif
 

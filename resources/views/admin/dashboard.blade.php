@@ -10,7 +10,7 @@
     <!-- Aksi Utama & Status Database -->
     <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div>
-            <a href="{{ route('admin.devices.create') }}" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5">
+            <a href="{{ route('admin.devices.create') }}" class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 <span>Tambah Perangkat Baru</span>
             </a>
@@ -32,13 +32,13 @@
                 <div class="flex items-center justify-between">
                     <span class="text-[10px] font-bold uppercase tracking-wider {{ $statusFilter === 'all' ? 'text-slate-300' : 'text-slate-400' }}">Total Semua Perangkat</span>
                     @if($statusFilter === 'all')
-                        <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-500 text-white">Dipilih</span>
+                        <span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-[#F71616] text-white">Dipilih</span>
                     @endif
                 </div>
                 <div class="text-2xl font-black mt-1 {{ $statusFilter === 'all' ? 'text-white' : 'text-slate-900' }}">{{ $stats['total_devices'] }} <span class="text-xs font-normal {{ $statusFilter === 'all' ? 'text-slate-300' : 'text-slate-400' }}">Unit</span></div>
                 <div class="mt-1 flex items-center justify-between text-[11px] {{ $statusFilter === 'all' ? 'text-slate-300' : 'text-slate-500' }}">
                     <span>Terdaftar di sistem</span>
-                    <span class="font-bold {{ $statusFilter === 'all' ? 'text-blue-300' : 'text-blue-600' }} group-hover:underline">Buka &rarr;</span>
+                    <span class="font-bold {{ $statusFilter === 'all' ? 'text-red-300' : 'text-[#F71616]' }} group-hover:underline">Buka &rarr;</span>
                 </div>
             </a>
 
