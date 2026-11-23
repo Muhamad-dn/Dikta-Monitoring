@@ -15,9 +15,15 @@
                 <p class="text-xs text-slate-500">Cari berdasarkan Nomor Registrasi, NOJAR, Nama Perangkat, atau Area</p>
             </div>
             <div class="flex items-center gap-2 shrink-0 flex-wrap">
-                <button type="button" onclick="openImportExcelModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl shadow-xs transition-colors cursor-pointer">
+                <!-- Import Excel HB JKT -->
+                <button type="button" onclick="openImportExcelModal('hb_jkt')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl shadow-xs transition-colors cursor-pointer" title="Import data perangkat ke Gudang HB JKT">
                     <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-                    <span>Import Excel / CSV</span>
+                    <span>Import Excel HB JKT</span>
+                </button>
+                <!-- Import Excel HB CKR -->
+                <button type="button" onclick="openImportExcelModal('hb_ckr')" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-300 rounded-xl shadow-xs transition-colors cursor-pointer" title="Import data perangkat ke Gudang HB CKR">
+                    <svg class="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                    <span>Import Excel HB CKR</span>
                 </button>
                 <a href="{{ route('admin.devices.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-xl shadow-xs transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>

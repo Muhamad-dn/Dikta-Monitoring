@@ -24,18 +24,74 @@ class DeviceExcelImportTest extends TestCase
     {
         $admin = User::where('role', 'admin')->first();
 
-        // Download XLSX
+        // Download default XLSX
         $responseXlsx = $this->actingAs($admin)->get(route('admin.devices.import-template', ['format' => 'xlsx']));
         $responseXlsx->assertStatus(200);
         $responseXlsx->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $this->assertNotEmpty($responseXlsx->getContent());
 
-        // Download CSV
-        $responseCsv = $this->actingAs($admin)->get(route('admin.devices.import-template', ['format' => 'csv']));
-        $responseCsv->assertStatus(200);
-        $responseCsv->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
-        $this->assertStringContainsString('Nomor Registrasi', $responseCsv->getContent());
-        $this->assertStringContainsString('HA0267', $responseCsv->getContent());
+        // Download CSV with hub hb_jkt
+        $responseCsvJkt = $this->actingAs($admin)->get(route('admin.devices.import-template', ['format' => 'csv', 'hub' => 'hb_jkt']));
+        $responseCsvJkt->assertStatus(200);
+        $responseCsvJkt->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Nomor Registrasi', $responseCsvJkt->getContent());
+        $this->assertStringContainsString('Tersedia di HB JKT', $responseCsvJkt->getContent());
+
+        // Download CSV with hub hb_ckr
+        $responseCsvCkr = $this->actingAs($admin)->get(route('admin.devices.import-template', ['format' => 'csv', 'hub' => 'hb_ckr']));
+        $responseCsvCkr->assertStatus(200);
+        $this->assertStringContainsString('Tersedia di HB CKR', $responseCsvCkr->getContent());
+    }
+
+    public function test_import_devices_target_warehouse_hb_jkt_and_hb_ckr()
+    {
+        $admin = User::where('role', 'admin')->first();
+
+        // 1. Import to HB JKT
+        $csvJkt = "Nomor Registrasi,Serial Number,Nama Perangkat,Merk,Model,Tipe,Area,NOJAR,Nama Pelanggan,Alamat,Aktivitas,Status Stok,Kondisi,Catatan\n";
+        $csvJkt .= "JKT-001,SN-JKT-001,Router JKT,MikroTik,RB750,Router,BWA,,,,,baru,Unit masuk Jakarta\n";
+
+        $tmpJkt = tempnam(sys_get_temp_dir(), 'test_jkt_') . '.csv';
+        file_put_contents($tmpJkt, $csvJkt);
+
+        $uploadJkt = new UploadedFile($tmpJkt, 'import_jkt.csv', 'text/csv', null, true);
+
+        $resJkt = $this->actingAs($admin)->post(route('admin.devices.import'), [
+            'file' => $uploadJkt,
+            'warehouse_hub' => 'hb_jkt',
+        ]);
+        $resJkt->assertRedirect();
+        $resJkt->assertSessionHas('success');
+
+        $this->assertDatabaseHas('devices', [
+            'registration_number' => 'JKT-001',
+            'stock_status' => 'tersedia_hb_jkt',
+            'current_location' => 'Gudang HB JKT (Stok Spare)',
+        ]);
+        @unlink($tmpJkt);
+
+        // 2. Import to HB CKR
+        $csvCkr = "Nomor Registrasi,Serial Number,Nama Perangkat,Merk,Model,Tipe,Area,NOJAR,Nama Pelanggan,Alamat,Aktivitas,Status Stok,Kondisi,Catatan\n";
+        $csvCkr .= "CKR-001,SN-CKR-001,Router CKR,MikroTik,RB750,Router,BDA,,,,,baru,Unit masuk Cikarang\n";
+
+        $tmpCkr = tempnam(sys_get_temp_dir(), 'test_ckr_') . '.csv';
+        file_put_contents($tmpCkr, $csvCkr);
+
+        $uploadCkr = new UploadedFile($tmpCkr, 'import_ckr.csv', 'text/csv', null, true);
+
+        $resCkr = $this->actingAs($admin)->post(route('admin.devices.import'), [
+            'file' => $uploadCkr,
+            'warehouse_hub' => 'hb_ckr',
+        ]);
+        $resCkr->assertRedirect();
+        $resCkr->assertSessionHas('success');
+
+        $this->assertDatabaseHas('devices', [
+            'registration_number' => 'CKR-001',
+            'stock_status' => 'tersedia_hb_ckr',
+            'current_location' => 'Gudang HB CKR (Stok Spare)',
+        ]);
+        @unlink($tmpCkr);
     }
 
     public function test_import_devices_from_csv_file()
@@ -170,15 +226,17 @@ class DeviceExcelImportTest extends TestCase
         // 1. Device Index Page
         $resIndex = $this->actingAs($admin)->get(route('admin.devices.index'));
         $resIndex->assertStatus(200);
-        $resIndex->assertSee('Import Excel / CSV');
+        $resIndex->assertSee('Import Excel HB JKT');
+        $resIndex->assertSee('Import Excel HB CKR');
         $resIndex->assertSee('importExcelModal');
-        $resIndex->assertSee(route('admin.devices.import-template', ['format' => 'xlsx']));
+        $resIndex->assertSee(route('admin.devices.import-template', ['format' => 'xlsx', 'hub' => 'hb_jkt']));
 
         // 2. Device Stock Page
         $resStock = $this->actingAs($admin)->get(route('admin.devices.stock'));
         $resStock->assertStatus(200);
-        $resStock->assertSee('Import Excel / CSV');
+        $resStock->assertSee('Import Excel HB JKT');
+        $resStock->assertSee('Import Excel HB CKR');
         $resStock->assertSee('importExcelModal');
-        $resStock->assertSee(route('admin.devices.import-template', ['format' => 'xlsx']));
+        $resStock->assertSee(route('admin.devices.import-template', ['format' => 'xlsx', 'hub' => 'hb_jkt']));
     }
 }

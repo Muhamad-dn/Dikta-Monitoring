@@ -330,28 +330,122 @@ class SimpleExcelService
     }
 
     /**
-     * Generate sample CSV template content with UTF-8 BOM for instant Excel compatibility.
+     * Get sample rows for template, tailored by warehouse hub if provided.
+     *
+     * @param string|null $hub 'hb_jkt' or 'hb_ckr'
+     * @return array<int, array<int, string>>
      */
-    public static function generateSampleCsv(): string
+    public static function getSampleRows(?string $hub = null): array
     {
-        $headers = [
-            'Nomor Registrasi',
-            'Serial Number',
-            'Nama Perangkat',
-            'Merk',
-            'Model',
-            'Tipe',
-            'Area',
-            'NOJAR',
-            'Nama Pelanggan',
-            'Alamat',
-            'Aktivitas',
-            'Status Stok',
-            'Kondisi',
-            'Catatan'
-        ];
+        $hub = strtolower((string)$hub);
 
-        $sampleRows = [
+        if ($hub === 'hb_ckr') {
+            return [
+                [
+                    'HA2068',
+                    'B2WN0262020HA2068',
+                    'HUAWEI HG8245H5',
+                    'Huawei',
+                    'HG8245H5',
+                    'ONT',
+                    'BDA',
+                    'NJR002',
+                    'PT Telkom Akses Cikarang',
+                    'Kawasan Industri GIIC Cikarang',
+                    'Spare Dikta',
+                    'Tersedia di HB CKR',
+                    'baru',
+                    'Stok masuk gudang HB Cikarang'
+                ],
+                [
+                    'CKR0101',
+                    'B2WSBKA0138MA0323',
+                    'Bivocom Industrial 4G Router',
+                    'Bivocom',
+                    'TR321',
+                    'Router',
+                    'BWA',
+                    'NJR005',
+                    'PT Hyundai Motor Cikarang',
+                    'Kawasan GIIC Blok C-1',
+                    'PSB',
+                    'Tersedia di HB CKR',
+                    'baru',
+                    'Unit operasional Cikarang'
+                ],
+                [
+                    'MK0205',
+                    'RB951-SN112233',
+                    'MikroTik RB951Ui-2HnD',
+                    'MikroTik',
+                    'RB951Ui',
+                    'Router',
+                    'SEOA',
+                    'NJR006',
+                    'PT Cikarang Listrindo',
+                    'Kawasan Jababeka II',
+                    'Troubleshoot',
+                    'Tersedia di HB CKR',
+                    'bekas_bagus',
+                    'Hasil dismantle tes normal HB CKR'
+                ]
+            ];
+        }
+
+        if ($hub === 'hb_jkt') {
+            return [
+                [
+                    'HA0267',
+                    'B2WN0262020HA0267',
+                    'FORTIGET 50E',
+                    'PT DIKTA',
+                    'FG-50E',
+                    'ONT',
+                    'BWA',
+                    'NJR001',
+                    'Bank Mandiri Cabang Utama',
+                    'Jl. Jendral Sudirman No. 45',
+                    'Spare Dikta',
+                    'Tersedia di HB JKT',
+                    'baru',
+                    'Perangkat cadangan operasional HB JKT'
+                ],
+                [
+                    'HA1099',
+                    'B2WN0262020HA1099',
+                    'HUAWEI HG8245H5',
+                    'Huawei',
+                    'HG8245H5',
+                    'ONT',
+                    'BDA',
+                    'NJR004',
+                    'PT Indosat Ooredoo',
+                    'Jl. Medan Merdeka Barat No. 21',
+                    'PSB',
+                    'Tersedia di HB JKT',
+                    'baru',
+                    'Unit operasional Jakarta'
+                ],
+                [
+                    'MK0109',
+                    'RB951-SN998877',
+                    'MikroTik RB951Ui-2HnD',
+                    'MikroTik',
+                    'RB951Ui',
+                    'Router',
+                    'SEOA',
+                    'NJR003',
+                    'Kantor BPN Serang',
+                    'Jl. Ahmad Yani No. 10',
+                    'Troubleshoot',
+                    'Tersedia di HB JKT',
+                    'bekas_bagus',
+                    'Hasil dismantle tes normal HB JKT'
+                ]
+            ];
+        }
+
+        return [
             [
                 'HA0267',
                 'B2WN0262020HA0267',
@@ -401,6 +495,31 @@ class SimpleExcelService
                 'Hasil dismantle tes normal'
             ]
         ];
+    }
+
+    /**
+     * Generate sample CSV template content with UTF-8 BOM for instant Excel compatibility.
+     */
+    public static function generateSampleCsv(?string $hub = null): string
+    {
+        $headers = [
+            'Nomor Registrasi',
+            'Serial Number',
+            'Nama Perangkat',
+            'Merk',
+            'Model',
+            'Tipe',
+            'Area',
+            'NOJAR',
+            'Nama Pelanggan',
+            'Alamat',
+            'Aktivitas',
+            'Status Stok',
+            'Kondisi',
+            'Catatan'
+        ];
+
+        $sampleRows = self::getSampleRows($hub);
 
         $output = fopen('php://temp', 'r+');
         // Add UTF-8 BOM
@@ -421,7 +540,7 @@ class SimpleExcelService
     /**
      * Generate sample .xlsx file content as binary string.
      */
-    public static function generateSampleXlsx(): string
+    public static function generateSampleXlsx(?string $hub = null): string
     {
         $tempFile = tempnam(sys_get_temp_dir(), 'xlsx_tpl_');
         $zip = new ZipArchive();
@@ -446,56 +565,7 @@ class SimpleExcelService
             'Catatan'
         ];
 
-        $sampleRows = [
-            [
-                'HA0267',
-                'B2WN0262020HA0267',
-                'FORTIGET 50E',
-                'PT DIKTA',
-                'FG-50E',
-                'ONT',
-                'BWA',
-                'NJR001',
-                'Bank Mandiri Cabang Utama',
-                'Jl. Jendral Sudirman No. 45',
-                'Spare Dikta',
-                'Tersedia di HB JKT',
-                'baru',
-                'Perangkat cadangan operasional'
-            ],
-            [
-                'HA2068',
-                'B2WN0262020HA2068',
-                'HUAWEI HG8245H5',
-                'Huawei',
-                'HG8245H5',
-                'ONT',
-                'BDA',
-                'NJR002',
-                'PT Telkom Akses',
-                'Jl. Gatot Subroto Kav. 12',
-                'PSB',
-                'Tersedia di HB CKR',
-                'baru',
-                'Siap pasang proyek baru'
-            ],
-            [
-                'MK0109',
-                'RB951-SN998877',
-                'MikroTik RB951Ui-2HnD',
-                'MikroTik',
-                'RB951Ui',
-                'Router',
-                'SEOA',
-                'NJR003',
-                'Kantor BPN Serang',
-                'Jl. Ahmad Yani No. 10',
-                'Troubleshoot',
-                'Tersedia di HB JKT',
-                'bekas_bagus',
-                'Hasil dismantle tes normal'
-            ]
-        ];
+        $sampleRows = self::getSampleRows($hub);
 
         // Build sheetData XML
         $sheetDataXml = '<sheetData>';

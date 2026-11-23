@@ -1107,19 +1107,25 @@ class DeviceController extends Controller
     public function downloadTemplate(Request $request)
     {
         $format = strtolower($request->query('format', 'xlsx'));
+        $hub = strtolower(trim((string)$request->query('hub', '')));
+        if (!in_array($hub, ['hb_jkt', 'hb_ckr'])) {
+            $hub = null;
+        }
+
+        $hubSuffix = $hub === 'hb_ckr' ? '_HB_CKR' : ($hub === 'hb_jkt' ? '_HB_JKT' : '_PT_DIKTA');
 
         if ($format === 'csv') {
-            $content = SimpleExcelService::generateSampleCsv();
+            $content = SimpleExcelService::generateSampleCsv($hub);
             return response($content, 200, [
                 'Content-Type' => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => 'attachment; filename="Template_Import_Perangkat_PT_DIKTA.csv"',
+                'Content-Disposition' => "attachment; filename=\"Template_Import_Perangkat{$hubSuffix}.csv\"",
             ]);
         }
 
-        $content = SimpleExcelService::generateSampleXlsx();
+        $content = SimpleExcelService::generateSampleXlsx($hub);
         return response($content, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="Template_Import_Perangkat_PT_DIKTA.xlsx"',
+            'Content-Disposition' => "attachment; filename=\"Template_Import_Perangkat{$hubSuffix}.xlsx\"",
         ]);
     }
 
@@ -1130,10 +1136,16 @@ class DeviceController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:10240', // Max 10MB
+            'warehouse_hub' => 'nullable|string|in:hb_jkt,hb_ckr',
         ], [
             'file.required' => 'Silakan pilih file Excel (.xlsx) atau CSV (.csv) untuk diunggah.',
             'file.max' => 'Ukuran file maksimal 10MB.',
         ]);
+
+        $targetHub = strtolower(trim((string)$request->input('warehouse_hub', '')));
+        if (!in_array($targetHub, ['hb_jkt', 'hb_ckr'])) {
+            $targetHub = null;
+        }
 
         $uploadedFile = $request->file('file');
         $ext = strtolower($uploadedFile->getClientOriginalExtension());
@@ -1280,14 +1292,22 @@ class DeviceController extends Controller
                 $normalizedActivity = 'PSB';
             }
 
-            // Normalisasi status stok
+            // Normalisasi status stok & target gudang
             $rawStatus = strtolower(trim((string)($row['stock_status'] ?? '')));
-            if (str_contains($rawStatus, 'ckr') || str_contains($rawStatus, 'cikarang')) {
+            if ($targetHub === 'hb_ckr') {
                 $stockStatus = 'tersedia_hb_ckr';
                 $defaultHubLocation = 'Gudang HB CKR';
-            } else {
+            } elseif ($targetHub === 'hb_jkt') {
                 $stockStatus = 'tersedia_hb_jkt';
                 $defaultHubLocation = 'Gudang HB JKT';
+            } else {
+                if (str_contains($rawStatus, 'ckr') || str_contains($rawStatus, 'cikarang')) {
+                    $stockStatus = 'tersedia_hb_ckr';
+                    $defaultHubLocation = 'Gudang HB CKR';
+                } else {
+                    $stockStatus = 'tersedia_hb_jkt';
+                    $defaultHubLocation = 'Gudang HB JKT';
+                }
             }
             if (str_contains($rawStatus, 'teknisi')) {
                 $stockStatus = 'dibawa_teknisi';
@@ -1418,7 +1438,8 @@ class DeviceController extends Controller
             }
         }
 
-        $msg = "Import Excel Berhasil! {$insertedCount} perangkat baru ditambahkan, {$updatedCount} perangkat diperbarui.";
+        $hubLabel = $targetHub === 'hb_ckr' ? ' ke Gudang HB CKR' : ($targetHub === 'hb_jkt' ? ' ke Gudang HB JKT' : '');
+        $msg = "Import Excel Berhasil! {$insertedCount} perangkat baru ditambahkan, {$updatedCount} perangkat diperbarui{$hubLabel}.";
         if ($skippedCount > 0) {
             $msg .= " ({$skippedCount} baris kosong dilewati).";
         }
