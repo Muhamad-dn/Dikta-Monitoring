@@ -211,5 +211,169 @@ class StockOpnameTest extends TestCase
         $csvResponse->assertStatus(200);
         $this->assertStringContainsString('text/csv', $csvResponse->headers->get('Content-Type'));
     }
+
+    public function test_admin_can_include_external_device_into_stock_and_opname()
+    {
+        $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
+        ]);
+
+        $opname = StockOpname::first();
+
+        // Buat perangkat dengan status di luar stok (misal: dibawa teknisi)
+        $externalDevice = Device::create([
+            'registration_number' => 'EXT-DEV-001',
+            'name' => 'Mikrotik External Router',
+            'serial_number' => 'SN-EXT-001',
+            'brand' => 'Mikrotik',
+            'stock_status' => 'dibawa_teknisi',
+            'current_technician_id' => $this->teknisi->id,
+            'current_location' => 'Lapangan',
+        ]);
+
+        $response = $this->actingAs($this->admin)->postJson(route('admin.stock-opname.include-external', $opname), [
+            'device_id' => $externalDevice->id,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+
+        $externalDevice->refresh();
+        $this->assertEquals('tersedia_hb_jkt', $externalDevice->stock_status);
+        $this->assertNull($externalDevice->current_technician_id);
+        $this->assertEquals('Gudang HB Jakarta', $externalDevice->current_location);
+
+        $this->assertDatabaseHas('device_histories', [
+            'device_id' => $externalDevice->id,
+            'action' => 'Masuk Stok via Stock Opname',
+            'new_status' => 'tersedia_hb_jkt',
+        ]);
+
+        $this->assertDatabaseHas('stock_opname_items', [
+            'stock_opname_id' => $opname->id,
+            'device_id' => $externalDevice->id,
+            'registration_number' => 'EXT-DEV-001',
+            'physical_status' => 'matched',
+        ]);
+    }
+
+    public function test_admin_can_scan_external_device_with_auto_include()
+    {
+        $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
+        ]);
+
+        $opname = StockOpname::first();
+
+        $externalDevice = Device::create([
+            'registration_number' => 'AUTO-SCAN-999',
+            'name' => 'Cisco Switch Outdoor',
+            'serial_number' => 'SN-AUTO-999',
+            'brand' => 'Cisco',
+            'stock_status' => 'rusak',
+            'current_location' => 'Area Perbaikan',
+        ]);
+
+        $response = $this->actingAs($this->admin)->postJson(route('admin.stock-opname.scan', $opname), [
+            'code' => 'AUTO-SCAN-999',
+            'auto_include' => true,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'type' => 'matched',
+            'auto_included' => true,
+        ]);
+
+        $externalDevice->refresh();
+        $this->assertEquals('tersedia_hb_jkt', $externalDevice->stock_status);
+        $this->assertEquals('Gudang HB Jakarta', $externalDevice->current_location);
+    }
+
+    public function test_admin_can_register_new_device_into_stock_and_opname()
+    {
+        $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
+        ]);
+
+        $opname = StockOpname::first();
+
+        $response = $this->actingAs($this->admin)->postJson(route('admin.stock-opname.register-new', $opname), [
+            'registration_number' => 'NEW-UNIT-888',
+            'name' => 'Teltonika Dual SIM 4G Gateway',
+            'serial_number' => 'SN-NEW-888',
+            'brand' => 'Teltonika',
+            'type' => 'Gateway',
+            'area' => 'Rak Baru A1',
+            'condition' => 'Baru',
+            'notes' => 'Ditemukan fisik belum terdata',
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+
+        $device = Device::where('registration_number', 'NEW-UNIT-888')->first();
+        $this->assertNotNull($device);
+        $this->assertEquals('tersedia_hb_jkt', $device->stock_status);
+        $this->assertEquals('Gudang HB Jakarta', $device->current_location);
+
+        $this->assertDatabaseHas('device_histories', [
+            'device_id' => $device->id,
+            'action' => 'Registrasi Perangkat Baru via Stock Opname',
+            'new_status' => 'tersedia_hb_jkt',
+        ]);
+
+        $this->assertDatabaseHas('stock_opname_items', [
+            'stock_opname_id' => $opname->id,
+            'device_id' => $device->id,
+            'registration_number' => 'NEW-UNIT-888',
+            'physical_status' => 'matched',
+        ]);
+    }
+
+    public function test_admin_can_search_external_devices()
+    {
+        $this->actingAs($this->admin)->post(route('admin.stock-opname.store'), [
+            'period_month' => 11,
+            'period_year' => 2026,
+            'location' => 'hb_jkt',
+            'admin_name' => 'Budi Administrator',
+        ]);
+
+        $opname = StockOpname::first();
+
+        Device::create([
+            'registration_number' => 'SEARCH-TEST-123',
+            'name' => 'Searchable Modem Router',
+            'serial_number' => 'SN-SEARCH-TEST-123',
+            'brand' => 'Huawei',
+            'stock_status' => 'dibawa_teknisi',
+        ]);
+
+        $response = $this->actingAs($this->admin)->getJson(route('admin.stock-opname.search-external', [
+            $opname,
+            'q' => 'SEARCH-TEST'
+        ]));
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+        $this->assertNotEmpty($response->json('devices'));
+    }
 }
 

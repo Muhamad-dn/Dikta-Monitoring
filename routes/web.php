@@ -70,6 +70,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/stock-opname', [AdminStockOpnameController::class, 'store'])->name('stock-opname.store');
     Route::get('/stock-opname/{stockOpname}', [AdminStockOpnameController::class, 'show'])->name('stock-opname.show');
     Route::post('/stock-opname/{stockOpname}/scan', [AdminStockOpnameController::class, 'scan'])->name('stock-opname.scan');
+    Route::post('/stock-opname/{stockOpname}/include-external', [AdminStockOpnameController::class, 'includeExternalDevice'])->name('stock-opname.include-external');
+    Route::post('/stock-opname/{stockOpname}/register-new', [AdminStockOpnameController::class, 'registerNewDevice'])->name('stock-opname.register-new');
+    Route::get('/stock-opname/{stockOpname}/search-external', [AdminStockOpnameController::class, 'searchExternalDevices'])->name('stock-opname.search-external');
     Route::post('/stock-opname/{stockOpname}/complete', [AdminStockOpnameController::class, 'complete'])->name('stock-opname.complete');
     Route::post('/stock-opname/{stockOpname}/items/{item}/resolve', [AdminStockOpnameController::class, 'resolveDiscrepancy'])->name('stock-opname.resolve');
     Route::get('/stock-opname/{stockOpname}/export', [AdminStockOpnameController::class, 'export'])->name('stock-opname.export');

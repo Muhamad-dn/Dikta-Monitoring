@@ -327,7 +327,10 @@ class StockOpnameController extends Controller
             ], 422);
         }
 
+        $autoInclude = $request->boolean('auto_include');
         $lowerCode = strtolower($code);
+        $targetStatus = ($stockOpname->location === 'hb_ckr') ? 'tersedia_hb_ckr' : 'tersedia_hb_jkt';
+        $targetLocation = ($stockOpname->location === 'hb_ckr') ? 'Gudang HB Cikarang' : 'Gudang HB Jakarta';
 
         // 1. Cek apakah ada di daftar target sesi opname ini
         $item = StockOpnameItem::where('stock_opname_id', $stockOpname->id)
@@ -350,12 +353,43 @@ class StockOpnameController extends Controller
                 ]);
             }
 
-            // Tandai cocok (matched)
-            $item->update([
-                'physical_status' => 'matched',
-                'scanned_at' => now(),
-                'scanned_by' => auth()->id(),
-            ]);
+            // Jika item ini sebelumnya anomali wrong_location dan pengguna scan / auto_include aktif, sinkronkan ke stok
+            if ($item->physical_status === 'wrong_location' && $autoInclude && $item->device) {
+                $device = $item->device;
+                $oldStatus = $device->stock_status;
+                $device->update([
+                    'stock_status' => $targetStatus,
+                    'current_technician_id' => null,
+                    'current_location' => $targetLocation,
+                ]);
+
+                DeviceHistory::create([
+                    'device_id' => $device->id,
+                    'actor_id' => auth()->id(),
+                    'action' => 'Masuk Stok via Scan Stock Opname',
+                    'previous_status' => $oldStatus,
+                    'new_status' => $targetStatus,
+                    'from_location' => $device->current_location ?? '-',
+                    'to_location' => $targetLocation,
+                    'notes' => "Perangkat dimasukkan ke stok {$targetLocation} saat scan Stock Opname {$stockOpname->title}.",
+                ]);
+
+                $item->update([
+                    'system_status' => $targetStatus,
+                    'system_location' => $targetLocation,
+                    'physical_status' => 'matched',
+                    'scanned_at' => now(),
+                    'scanned_by' => auth()->id(),
+                    'notes' => "Status disinkronkan ke {$targetLocation} saat scan",
+                ]);
+            } else {
+                // Tandai cocok (matched) normal
+                $item->update([
+                    'physical_status' => 'matched',
+                    'scanned_at' => now(),
+                    'scanned_by' => auth()->id(),
+                ]);
+            }
 
             $stockOpname->recalculateTotals();
 
@@ -389,7 +423,69 @@ class StockOpnameController extends Controller
             ->first();
 
         if ($device) {
-            // Perangkat ada di sistem tapi tidak seharusnya di gudang ini (misal di teknisi atau di HB CKR)
+            $oldStatus = $device->stock_status;
+            $oldLocation = $device->current_location ?? '-';
+
+            // Jika opsi auto_include aktif: langsung masukkan perangkat ke stok target dan cocokkan!
+            if ($autoInclude) {
+                $device->update([
+                    'stock_status' => $targetStatus,
+                    'current_technician_id' => null,
+                    'current_location' => $targetLocation,
+                ]);
+
+                DeviceHistory::create([
+                    'device_id' => $device->id,
+                    'actor_id' => auth()->id(),
+                    'action' => 'Masuk Stok Fisik via Scan Stock Opname',
+                    'previous_status' => $oldStatus,
+                    'new_status' => $targetStatus,
+                    'from_location' => $oldLocation,
+                    'to_location' => $targetLocation,
+                    'notes' => "Perangkat luar stok otomatis ditarik ke {$targetLocation} saat scan Stock Opname {$stockOpname->title}.",
+                ]);
+
+                $opnameItem = StockOpnameItem::create([
+                    'stock_opname_id' => $stockOpname->id,
+                    'device_id' => $device->id,
+                    'registration_number' => $device->registration_number,
+                    'device_name' => $device->name,
+                    'area' => $device->area,
+                    'system_status' => $targetStatus,
+                    'system_location' => $targetLocation,
+                    'physical_status' => 'matched',
+                    'scanned_at' => now(),
+                    'scanned_by' => auth()->id(),
+                    'notes' => "Perangkat luar stok otomatis masuk ke {$targetLocation} (sebelumnya '{$oldStatus}')",
+                ]);
+
+                $stockOpname->recalculateTotals();
+
+                return response()->json([
+                    'success' => true,
+                    'type' => 'matched',
+                    'auto_included' => true,
+                    'message' => "Perangkat '{$device->registration_number}' ({$device->name}) berhasil dimasukkan ke stok {$targetLocation} & terverifikasi ADA!",
+                    'item' => [
+                        'id' => $opnameItem->id,
+                        'registration_number' => $opnameItem->registration_number,
+                        'device_name' => $opnameItem->device_name,
+                        'area' => $opnameItem->area ?? '-',
+                        'physical_status' => $opnameItem->physical_status,
+                        'scanned_at' => $opnameItem->scanned_at->format('H:i:s d/m/Y'),
+                        'badge' => $opnameItem->status_badge,
+                    ],
+                    'stats' => [
+                        'total_system' => $stockOpname->total_system,
+                        'total_matched' => $stockOpname->total_matched,
+                        'total_missing' => $stockOpname->total_missing,
+                        'total_surplus' => $stockOpname->total_surplus,
+                        'total_physical' => $stockOpname->total_physical,
+                    ],
+                ]);
+            }
+
+            // Jika tidak auto_include, catat sebagai temuan anomali posisi namun sediakan tombol 1-click Masukkan ke Stok
             $anomalyItem = StockOpnameItem::create([
                 'stock_opname_id' => $stockOpname->id,
                 'device_id' => $device->id,
@@ -409,7 +505,12 @@ class StockOpnameController extends Controller
             return response()->json([
                 'success' => true,
                 'type' => 'anomaly',
-                'message' => "Peringatan Anomali: Perangkat '{$device->registration_number}' fisik ditemukan di sini, tapi di sistem tercatat '{$device->stock_status}'!",
+                'can_include_direct' => true,
+                'device_id' => $device->id,
+                'device_reg' => $device->registration_number,
+                'device_name' => $device->name,
+                'current_status' => $device->stock_status_label,
+                'message' => "Peringatan Anomali: Perangkat '{$device->registration_number}' fisik ditemukan di sini, tapi di sistem tercatat '{$device->stock_status_label}'!",
                 'item' => [
                     'id' => $anomalyItem->id,
                     'registration_number' => $anomalyItem->registration_number,
@@ -433,8 +534,282 @@ class StockOpnameController extends Controller
         return response()->json([
             'success' => false,
             'not_found' => true,
-            'message' => "Barcode / Nomor '{$code}' TIDAK TERDAFTAR di sistem!",
+            'scanned_code' => $code,
+            'message' => "Barcode / Nomor '{$code}' TIDAK TERDAFTAR di sistem! Anda dapat mendaftarkannya langsung ke stok.",
         ], 404);
+    }
+
+    public function searchExternalDevices(Request $request, StockOpname $stockOpname)
+    {
+        $q = trim($request->input('q', ''));
+        if (empty($q) || strlen($q) < 2) {
+            return response()->json(['success' => true, 'devices' => []]);
+        }
+
+        $keyword = '%' . strtolower($q) . '%';
+
+        // Ambil ID perangkat yang sudah ter-matched di sesi ini
+        $matchedDeviceIds = StockOpnameItem::where('stock_opname_id', $stockOpname->id)
+            ->where('physical_status', 'matched')
+            ->pluck('device_id')
+            ->filter();
+
+        $devices = Device::query()
+            ->whereNotIn('id', $matchedDeviceIds)
+            ->where(function ($sub) use ($keyword) {
+                $sub->whereRaw('LOWER(registration_number) LIKE ?', [$keyword])
+                    ->orWhereRaw('LOWER(serial_number) LIKE ?', [$keyword])
+                    ->orWhereRaw('LOWER(name) LIKE ?', [$keyword])
+                    ->orWhereRaw('LOWER(nojar) LIKE ?', [$keyword]);
+            })
+            ->limit(15)
+            ->get();
+
+        $targetStatus = ($stockOpname->location === 'hb_ckr') ? 'tersedia_hb_ckr' : 'tersedia_hb_jkt';
+
+        $mapped = $devices->map(function ($d) use ($targetStatus) {
+            return [
+                'id' => $d->id,
+                'registration_number' => $d->registration_number,
+                'serial_number' => $d->serial_number ?? '-',
+                'name' => $d->name,
+                'brand' => $d->brand ?? '-',
+                'type' => $d->type ?? '-',
+                'stock_status' => $d->stock_status,
+                'stock_status_label' => $d->stock_status_label,
+                'current_location' => $d->current_location ?? '-',
+                'is_in_target_stock' => ($d->stock_status === $targetStatus),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'devices' => $mapped,
+        ]);
+    }
+
+    public function includeExternalDevice(Request $request, StockOpname $stockOpname)
+    {
+        if ($stockOpname->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi Stock Opname sudah selesai dan terkunci.',
+            ], 422);
+        }
+
+        $deviceId = $request->input('device_id');
+        $code = trim($request->input('code', ''));
+
+        $device = null;
+        if (!empty($deviceId)) {
+            $device = Device::find($deviceId);
+        } elseif (!empty($code)) {
+            $lowerCode = strtolower($code);
+            $device = Device::whereRaw('LOWER(registration_number) = ?', [$lowerCode])
+                ->orWhereRaw('LOWER(serial_number) = ?', [$lowerCode])
+                ->orWhereRaw('LOWER(nojar) = ?', [$lowerCode])
+                ->first();
+        }
+
+        if (!$device) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Perangkat tidak ditemukan di database.',
+            ], 404);
+        }
+
+        $targetStatus = ($stockOpname->location === 'hb_ckr') ? 'tersedia_hb_ckr' : 'tersedia_hb_jkt';
+        $targetLocation = ($stockOpname->location === 'hb_ckr') ? 'Gudang HB Cikarang' : 'Gudang HB Jakarta';
+        $oldStatus = $device->stock_status;
+        $oldLocation = $device->current_location ?? '-';
+
+        $device->update([
+            'stock_status' => $targetStatus,
+            'current_technician_id' => null,
+            'current_location' => $targetLocation,
+        ]);
+
+        DeviceHistory::create([
+            'device_id' => $device->id,
+            'actor_id' => auth()->id(),
+            'action' => 'Masuk Stok via Stock Opname',
+            'previous_status' => $oldStatus,
+            'new_status' => $targetStatus,
+            'from_location' => $oldLocation,
+            'to_location' => $targetLocation,
+            'notes' => "Perangkat dipindahkan ke stok {$targetLocation} saat Stock Opname {$stockOpname->title} ({$stockOpname->opname_code}).",
+        ]);
+
+        // Cek apakah item sudah ada di sesi stock opname
+        $item = StockOpnameItem::where('stock_opname_id', $stockOpname->id)
+            ->where(function ($iq) use ($device) {
+                $iq->where('device_id', $device->id)
+                   ->orWhere('registration_number', $device->registration_number);
+            })
+            ->first();
+
+        if ($item) {
+            $item->update([
+                'device_id' => $device->id,
+                'device_name' => $device->name,
+                'area' => $device->area,
+                'system_status' => $targetStatus,
+                'system_location' => $targetLocation,
+                'physical_status' => 'matched',
+                'scanned_at' => now(),
+                'scanned_by' => auth()->id(),
+                'notes' => "Dimasukkan ke stok dari status '{$oldStatus}'",
+            ]);
+        } else {
+            $item = StockOpnameItem::create([
+                'stock_opname_id' => $stockOpname->id,
+                'device_id' => $device->id,
+                'registration_number' => $device->registration_number,
+                'device_name' => $device->name,
+                'area' => $device->area,
+                'system_status' => $targetStatus,
+                'system_location' => $targetLocation,
+                'physical_status' => 'matched',
+                'scanned_at' => now(),
+                'scanned_by' => auth()->id(),
+                'notes' => "Perangkat luar stok dimasukkan ke {$targetLocation} (sebelumnya '{$oldStatus}')",
+            ]);
+        }
+
+        $stockOpname->recalculateTotals();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Perangkat '{$device->registration_number}' ({$device->name}) berhasil dimasukkan ke stok {$targetLocation} dan diverifikasi ADA!",
+                'item' => [
+                    'id' => $item->id,
+                    'registration_number' => $item->registration_number,
+                    'device_name' => $item->device_name,
+                    'area' => $item->area ?? '-',
+                    'physical_status' => $item->physical_status,
+                    'scanned_at' => $item->scanned_at->format('H:i:s d/m/Y'),
+                    'badge' => $item->status_badge,
+                ],
+                'stats' => [
+                    'total_system' => $stockOpname->total_system,
+                    'total_matched' => $stockOpname->total_matched,
+                    'total_missing' => $stockOpname->total_missing,
+                    'total_surplus' => $stockOpname->total_surplus,
+                    'total_physical' => $stockOpname->total_physical,
+                ],
+            ]);
+        }
+
+        return back()->with('success', "Perangkat {$device->registration_number} berhasil dimasukkan ke stok {$targetLocation}!");
+    }
+
+    public function registerNewDevice(Request $request, StockOpname $stockOpname)
+    {
+        if ($stockOpname->status === 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sesi Stock Opname sudah selesai dan terkunci.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'registration_number' => 'required|string|max:100|unique:devices,registration_number',
+            'name' => 'required|string|max:255',
+            'serial_number' => 'nullable|string|max:100',
+            'brand' => 'nullable|string|max:100',
+            'model' => 'nullable|string|max:100',
+            'type' => 'nullable|string|max:100',
+            'nojar' => 'nullable|string|max:100',
+            'area' => 'nullable|string|max:100',
+            'condition' => 'nullable|string|max:50',
+            'notes' => 'nullable|string|max:500',
+        ], [
+            'registration_number.required' => 'Nomor Registrasi / Barcode wajib diisi.',
+            'registration_number.unique' => 'Nomor Registrasi sudah terdaftar di sistem. Silakan gunakan fitur Cari Perangkat Luar Stok.',
+            'name.required' => 'Nama Perangkat wajib diisi.',
+        ]);
+
+        $targetStatus = ($stockOpname->location === 'hb_ckr') ? 'tersedia_hb_ckr' : 'tersedia_hb_jkt';
+        $targetLocation = ($stockOpname->location === 'hb_ckr') ? 'Gudang HB Cikarang' : 'Gudang HB Jakarta';
+
+        $regNumber = strtoupper(trim($validated['registration_number']));
+        $serialNumber = !empty($validated['serial_number']) ? trim($validated['serial_number']) : $regNumber;
+        $brand = !empty($validated['brand']) ? trim($validated['brand']) : 'General';
+        $type = !empty($validated['type']) ? trim($validated['type']) : 'ONT';
+
+        $conditionInput = strtolower(trim($request->input('condition', 'baru')));
+        if (!in_array($conditionInput, ['baru', 'bekas_bagus', 'rusak'])) {
+            $conditionInput = 'baru';
+        }
+
+        $device = Device::create([
+            'registration_number' => $regNumber,
+            'name' => trim($validated['name']),
+            'serial_number' => $serialNumber,
+            'brand' => $brand,
+            'model' => !empty($validated['model']) ? trim($validated['model']) : null,
+            'type' => $type,
+            'nojar' => !empty($validated['nojar']) ? trim($validated['nojar']) : null,
+            'area' => !empty($validated['area']) ? trim($validated['area']) : null,
+            'condition' => $conditionInput,
+            'notes' => $validated['notes'] ?? null,
+            'stock_status' => $targetStatus,
+            'current_location' => $targetLocation,
+            'current_technician_id' => null,
+        ]);
+
+        DeviceHistory::create([
+            'device_id' => $device->id,
+            'actor_id' => auth()->id(),
+            'action' => 'Registrasi Perangkat Baru via Stock Opname',
+            'previous_status' => null,
+            'new_status' => $targetStatus,
+            'from_location' => null,
+            'to_location' => $targetLocation,
+            'notes' => "Perangkat baru didaftarkan langsung ke stok {$targetLocation} saat Stock Opname {$stockOpname->title} ({$stockOpname->opname_code}).",
+        ]);
+
+        $item = StockOpnameItem::create([
+            'stock_opname_id' => $stockOpname->id,
+            'device_id' => $device->id,
+            'registration_number' => $device->registration_number,
+            'device_name' => $device->name,
+            'area' => $device->area,
+            'system_status' => $targetStatus,
+            'system_location' => $targetLocation,
+            'physical_status' => 'matched',
+            'scanned_at' => now(),
+            'scanned_by' => auth()->id(),
+            'notes' => 'Perangkat baru didaftarkan & langsung masuk stok fisik',
+        ]);
+
+        $stockOpname->recalculateTotals();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Perangkat baru '{$device->registration_number}' ({$device->name}) berhasil didaftarkan, masuk stok {$targetLocation}, dan diverifikasi ADA!",
+                'item' => [
+                    'id' => $item->id,
+                    'registration_number' => $item->registration_number,
+                    'device_name' => $item->device_name,
+                    'area' => $item->area ?? '-',
+                    'physical_status' => $item->physical_status,
+                    'scanned_at' => $item->scanned_at->format('H:i:s d/m/Y'),
+                    'badge' => $item->status_badge,
+                ],
+                'stats' => [
+                    'total_system' => $stockOpname->total_system,
+                    'total_matched' => $stockOpname->total_matched,
+                    'total_missing' => $stockOpname->total_missing,
+                    'total_surplus' => $stockOpname->total_surplus,
+                    'total_physical' => $stockOpname->total_physical,
+                ],
+            ]);
+        }
+
+        return back()->with('success', "Perangkat baru {$device->registration_number} berhasil didaftarkan ke stok {$targetLocation}!");
     }
 
     public function resolveDiscrepancy(Request $request, StockOpname $stockOpname, StockOpnameItem $item)

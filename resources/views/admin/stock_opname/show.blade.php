@@ -12,8 +12,12 @@ function stockOpnameApp(config) {
     return {
         opnameId: config.opnameId,
         scanUrl: config.scanUrl,
+        includeExternalUrl: config.includeExternalUrl,
+        registerNewUrl: config.registerNewUrl,
+        searchExternalUrl: config.searchExternalUrl,
         csrfToken: config.csrfToken,
         isCompleted: config.isCompleted,
+        targetLocationLabel: config.targetLocationLabel,
         stats: config.initialStats,
         scanInput: '',
         isLoading: false,
@@ -21,7 +25,37 @@ function stockOpnameApp(config) {
         html5QrCode: null,
         scanMessage: '',
         scanMessageType: '', // 'matched', 'anomaly', 'error', 'not_found'
+        autoInclude: true, // Default ON: otomatis masukkan ke stok jika di luar stok
+        canIncludeDirect: false,
+        anomalyDeviceId: null,
+        unregisteredCode: '',
+
+        // Modals
         openCompleteModal: false,
+        openExternalModal: false,
+        activeModalTab: 'external', // 'external' | 'new_device'
+
+        // External search
+        externalQuery: '',
+        externalDevices: [],
+        isSearchingExternal: false,
+        searchTimeout: null,
+
+        // New device form
+        isSubmittingNew: false,
+        newDeviceError: '',
+        newDevice: {
+            registration_number: '',
+            name: '',
+            serial_number: '',
+            brand: '',
+            model: '',
+            type: '',
+            nojar: '',
+            area: '',
+            condition: 'Baik',
+            notes: ''
+        },
 
         percentMatch() {
             if (!this.stats.total_system || this.stats.total_system === 0) return 0;
@@ -62,6 +96,9 @@ function stockOpnameApp(config) {
 
             this.isLoading = true;
             this.scanMessage = '';
+            this.canIncludeDirect = false;
+            this.anomalyDeviceId = null;
+            this.unregisteredCode = '';
 
             try {
                 const res = await fetch(this.scanUrl, {
@@ -71,7 +108,10 @@ function stockOpnameApp(config) {
                         'X-CSRF-TOKEN': this.csrfToken,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ code: code })
+                    body: JSON.stringify({ 
+                        code: code,
+                        auto_include: this.autoInclude
+                    })
                 });
 
                 const data = await res.json();
@@ -85,6 +125,10 @@ function stockOpnameApp(config) {
                         this.playBeep(false);
                         this.scanMessageType = 'anomaly';
                         this.scanMessage = data.message;
+                        if (data.can_include_direct) {
+                            this.canIncludeDirect = true;
+                            this.anomalyDeviceId = data.device_id;
+                        }
                     }
 
                     if (data.stats) {
@@ -100,6 +144,11 @@ function stockOpnameApp(config) {
                         }
                     }
 
+                    // Jika item masuk dari luar stok via auto include, reload sejenak agar item masuk ke tabel
+                    if (data.auto_included) {
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+
                     // Kosongkan input dan refocus untuk scan berikutnya
                     this.scanInput = '';
                     if (this.$refs.scanInputRef) {
@@ -109,6 +158,9 @@ function stockOpnameApp(config) {
                     this.playBeep(false);
                     this.scanMessageType = data.not_found ? 'not_found' : 'error';
                     this.scanMessage = data.message || 'Gagal memproses barcode.';
+                    if (data.not_found) {
+                        this.unregisteredCode = data.scanned_code || code;
+                    }
                     this.scanInput = '';
                     if (this.$refs.scanInputRef) {
                         this.$refs.scanInputRef.focus();
@@ -126,6 +178,131 @@ function stockOpnameApp(config) {
         quickCheck(regNumber) {
             this.scanInput = regNumber;
             this.submitScan();
+        },
+
+        async includeDevice(deviceId, code = null) {
+            if (!deviceId && !code) return;
+            this.isLoading = true;
+            try {
+                const res = await fetch(this.includeExternalUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ device_id: deviceId, code: code })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    this.playBeep(true);
+                    this.scanMessageType = 'matched';
+                    this.scanMessage = data.message;
+                    this.canIncludeDirect = false;
+                    this.openExternalModal = false;
+                    if (data.stats) {
+                        this.stats = data.stats;
+                    }
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.playBeep(false);
+                    alert(data.message || 'Gagal memasukkan perangkat ke stok.');
+                }
+            } catch (err) {
+                this.playBeep(false);
+                alert('Terjadi kesalahan jaringan.');
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        onExternalSearchInput() {
+            clearTimeout(this.searchTimeout);
+            const query = this.externalQuery.trim();
+            if (query.length < 2) {
+                this.externalDevices = [];
+                return;
+            }
+
+            this.isSearchingExternal = true;
+            this.searchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`${this.searchExternalUrl}?q=${encodeURIComponent(query)}`, {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        this.externalDevices = data.devices || [];
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    this.isSearchingExternal = false;
+                }
+            }, 300);
+        },
+
+        openRegisterModalWithCode(code) {
+            this.newDevice.registration_number = code ? code.toUpperCase() : '';
+            this.activeModalTab = 'new_device';
+            this.openExternalModal = true;
+            this.scanMessage = '';
+        },
+
+        async submitNewDevice() {
+            if (!this.newDevice.registration_number.trim() || !this.newDevice.name.trim()) {
+                this.newDeviceError = 'Nomor Registrasi dan Nama Perangkat wajib diisi.';
+                return;
+            }
+
+            this.isSubmittingNew = true;
+            this.newDeviceError = '';
+
+            try {
+                const res = await fetch(this.registerNewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': this.csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(this.newDevice)
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    this.playBeep(true);
+                    this.scanMessageType = 'matched';
+                    this.scanMessage = data.message;
+                    this.openExternalModal = false;
+                    this.newDevice = {
+                        registration_number: '',
+                        name: '',
+                        serial_number: '',
+                        brand: '',
+                        model: '',
+                        type: '',
+                        nojar: '',
+                        area: '',
+                        condition: 'Baik',
+                        notes: ''
+                    };
+                    if (data.stats) {
+                        this.stats = data.stats;
+                    }
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    this.playBeep(false);
+                    this.newDeviceError = data.message || 'Gagal mendaftarkan perangkat baru.';
+                }
+            } catch (err) {
+                this.playBeep(false);
+                this.newDeviceError = 'Terjadi kesalahan jaringan atau server.';
+            } finally {
+                this.isSubmittingNew = false;
+            }
         },
 
         toggleCamera() {
@@ -185,8 +362,12 @@ function stockOpnameApp(config) {
 <div class="space-y-6" x-data="stockOpnameApp({
     opnameId: {{ $stockOpname->id }},
     scanUrl: '{{ route('admin.stock-opname.scan', $stockOpname) }}',
+    includeExternalUrl: '{{ route('admin.stock-opname.include-external', $stockOpname) }}',
+    registerNewUrl: '{{ route('admin.stock-opname.register-new', $stockOpname) }}',
+    searchExternalUrl: '{{ route('admin.stock-opname.search-external', $stockOpname) }}',
     csrfToken: '{{ csrf_token() }}',
     isCompleted: {{ $stockOpname->status === 'completed' ? 'true' : 'false' }},
+    targetLocationLabel: '{{ $stockOpname->location_label }}',
     initialStats: {
         total_system: {{ $stockOpname->total_system }},
         total_matched: {{ $stockOpname->total_matched }},
@@ -227,6 +408,14 @@ function stockOpnameApp(config) {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
+            @if($stockOpname->status !== 'completed')
+                <button type="button" @click="openExternalModal = true; activeModalTab = 'external'"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    <span>+ Perangkat Luar Stok / Baru</span>
+                </button>
+            @endif
+
             <a href="{{ route('admin.stock-opname.print', $stockOpname) }}" target="_blank"
                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs">
                 <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
@@ -300,12 +489,20 @@ function stockOpnameApp(config) {
                     </div>
                 </div>
 
-                <button type="button" @click="toggleCamera()" 
-                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
-                        :class="cameraActive ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30'">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span x-text="cameraActive ? 'Tutup Kamera' : 'Buka Kamera Barcode'">Buka Kamera Barcode</span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="openExternalModal = true; activeModalTab = 'external'"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                        <span>+ Input Luar Stok / Baru</span>
+                    </button>
+
+                    <button type="button" @click="toggleCamera()" 
+                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+                            :class="cameraActive ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-600/30' : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30'">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span x-text="cameraActive ? 'Tutup Kamera' : 'Buka Kamera Barcode'">Buka Kamera Barcode</span>
+                    </button>
+                </div>
             </div>
 
             <!-- Kamera Box jika aktif -->
@@ -342,24 +539,51 @@ function stockOpnameApp(config) {
                 </div>
             </div>
 
+            <!-- Opsi Auto-Include Perangkat Luar Stok -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs text-blue-200">
+                <label class="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" x-model="autoInclude" class="w-4 h-4 rounded text-blue-500 focus:ring-blue-400 bg-slate-950 border-slate-700">
+                    <span class="font-medium text-blue-100">Otomatis tarik & masukkan ke stok jika perangkat ditemukan di luar stok / beda lokasi</span>
+                </label>
+                <span class="text-[11px] text-blue-300/80">
+                    Target Stok: <strong class="text-white">{{ $stockOpname->location_label }}</strong>
+                </span>
+            </div>
+
             <!-- Pesan Notifikasi Scan Live (Banner) -->
             <template x-if="scanMessage">
-                <div class="p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-between gap-3 transition-all animate-fadeIn"
+                <div class="p-4 rounded-2xl text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all animate-fadeIn"
                      :class="{
                          'bg-emerald-500/20 border border-emerald-400/40 text-emerald-200': scanMessageType === 'matched',
                          'bg-amber-500/20 border border-amber-400/40 text-amber-200': scanMessageType === 'anomaly',
                          'bg-rose-500/20 border border-rose-400/40 text-rose-200': scanMessageType === 'error' || scanMessageType === 'not_found'
                      }">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-2 h-2 rounded-full"
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <span class="w-2.5 h-2.5 rounded-full shrink-0"
                               :class="{
                                   'bg-emerald-400 animate-ping': scanMessageType === 'matched',
                                   'bg-amber-400': scanMessageType === 'anomaly',
                                   'bg-rose-400': scanMessageType === 'error' || scanMessageType === 'not_found'
                               }"></span>
-                        <span x-text="scanMessage"></span>
+                        <span class="text-xs sm:text-sm font-medium" x-text="scanMessage"></span>
+
+                        <!-- 1-Click Action jika anomali dan bisa langsung dimasukkan ke stok -->
+                        <template x-if="canIncludeDirect && anomalyDeviceId">
+                            <button type="button" @click="includeDevice(anomalyDeviceId)"
+                                    class="ml-2 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md transition-all">
+                                Masukkan ke Stok & Cocokkan Sekarang &rarr;
+                            </button>
+                        </template>
+
+                        <!-- 1-Click Action jika belum terdaftar sama sekali -->
+                        <template x-if="scanMessageType === 'not_found' && unregisteredCode">
+                            <button type="button" @click="openRegisterModalWithCode(unregisteredCode)"
+                                    class="ml-2 px-3 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs shadow-md transition-all">
+                                + Daftarkan Barcode Ini Sebagai Perangkat Baru
+                            </button>
+                        </template>
                     </div>
-                    <button type="button" @click="scanMessage = ''" class="text-white/60 hover:text-white">&times;</button>
+                    <button type="button" @click="scanMessage = ''; canIncludeDirect = false; unregisteredCode = ''" class="text-white/60 hover:text-white text-base leading-none">&times;</button>
                 </div>
             </template>
         </div>
@@ -556,6 +780,175 @@ function stockOpnameApp(config) {
                     <button type="submit" 
                             class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition-all">
                         Kunci & Selesaikan Opname
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Input Perangkat Luar Stok / Perangkat Baru -->
+    <div x-show="openExternalModal" x-cloak 
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+         @keydown.escape.window="openExternalModal = false">
+        
+        <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl w-full p-6 space-y-5"
+             @click.away="openExternalModal = false">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">Input Perangkat Luar Stok / Perangkat Baru</h3>
+                        <p class="text-[11px] text-slate-400">Unit fisik akan langsung masuk ke stok <strong class="text-slate-700 dark:text-slate-200">{{ $stockOpname->location_label }}</strong> dan diverifikasi Cocok (Matched)</p>
+                    </div>
+                </div>
+                <button type="button" @click="openExternalModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xl font-bold">&times;</button>
+            </div>
+
+            <!-- Tab Switcher Modal -->
+            <div class="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-semibold">
+                <button type="button" @click="activeModalTab = 'external'"
+                        class="flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        :class="activeModalTab === 'external' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <span>1. Cari Perangkat Luar Stok</span>
+                </button>
+                <button type="button" @click="activeModalTab = 'new_device'"
+                        class="flex-1 py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                        :class="activeModalTab === 'new_device' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-white shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>2. Daftarkan Perangkat Baru</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: Cari Perangkat Luar Stok -->
+            <div x-show="activeModalTab === 'external'" class="space-y-4">
+                <div class="relative">
+                    <input type="text" x-model="externalQuery" @input="onExternalSearchInput()"
+                           placeholder="Ketik No. Registrasi, Serial Number, atau Nama Perangkat..."
+                           class="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+                    <div x-show="isSearchingExternal" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <svg class="animate-spin w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                    </div>
+                </div>
+
+                <!-- Hasil Pencarian -->
+                <div class="max-h-72 overflow-y-auto space-y-2 pr-1">
+                    <template x-for="dev in externalDevices" :key="dev.id">
+                        <div class="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-600 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between gap-3 transition-all">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-bold text-xs text-slate-900 dark:text-white" x-text="dev.registration_number"></span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" x-text="dev.stock_status_label"></span>
+                                </div>
+                                <div class="text-xs text-slate-600 dark:text-slate-300 font-semibold" x-text="dev.name"></div>
+                                <div class="text-[11px] text-slate-400 flex items-center gap-2">
+                                    <span>SN: <strong class="font-mono" x-text="dev.serial_number"></strong></span>
+                                    <span>•</span>
+                                    <span>Lokasi saat ini: <span x-text="dev.current_location"></span></span>
+                                </div>
+                            </div>
+                            <button type="button" @click="includeDevice(dev.id)" :disabled="isLoading"
+                                    class="px-3.5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white shadow-sm transition-all whitespace-nowrap">
+                                + Masukkan ke Stok & Cocokkan
+                            </button>
+                        </div>
+                    </template>
+
+                    <div x-show="!isSearchingExternal && externalQuery.length >= 2 && externalDevices.length === 0" class="py-8 text-center text-xs text-slate-400 space-y-2">
+                        <p>Tidak ada perangkat terdaftar yang cocok dengan kata kunci "<span class="font-bold text-slate-600 dark:text-slate-200" x-text="externalQuery"></span>".</p>
+                        <button type="button" @click="openRegisterModalWithCode(externalQuery)" class="text-indigo-600 dark:text-indigo-400 hover:underline font-bold">
+                            + Daftarkan Sebagai Perangkat Baru
+                        </button>
+                    </div>
+
+                    <div x-show="externalQuery.length < 2" class="py-8 text-center text-xs text-slate-400">
+                        Ketik minimal 2 karakter untuk mencari perangkat yang berada di luar stok (misal: di teknisi, pending, rusak, atau gudang lain).
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Daftarkan Perangkat Baru -->
+            <form x-show="activeModalTab === 'new_device'" @submit.prevent="submitNewDevice()" class="space-y-4 text-xs">
+                <div class="p-3 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 text-indigo-900 dark:text-indigo-200 text-[11px] leading-relaxed">
+                    💡 Perangkat baru ini akan otomatis tersimpan di database dengan status <strong>Tersedia di {{ $stockOpname->location_label }}</strong> dan langsung terverifikasi Sesuai (Matched) di sesi Stock Opname ini.
+                </div>
+
+                <template x-if="newDeviceError">
+                    <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-semibold" x-text="newDeviceError"></div>
+                </template>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nomor Registrasi / Barcode <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newDevice.registration_number" placeholder="Contoh: B2WSBKA0138..." required
+                               class="w-full px-3 py-2 text-xs uppercase font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Nama Perangkat <span class="text-rose-500">*</span></label>
+                        <input type="text" x-model="newDevice.name" placeholder="Contoh: Bivocom 4G Router" required
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Serial Number (SN)</label>
+                        <input type="text" x-model="newDevice.serial_number" placeholder="Nomor seri unit"
+                               class="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Merk / Brand</label>
+                        <input type="text" x-model="newDevice.brand" placeholder="Contoh: Bivocom, Mikrotik, Cisco"
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Model / Tipe</label>
+                        <input type="text" x-model="newDevice.type" placeholder="Contoh: Router, Switch, Converter"
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Area / Posisi Rak Fisik</label>
+                        <input type="text" x-model="newDevice.area" placeholder="Contoh: Rak A-02, Box 1"
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Kondisi Fisik</label>
+                        <select x-model="newDevice.condition" 
+                                class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                            <option value="baru">Baru</option>
+                            <option value="bekas_bagus">Bekas Bagus / Layak Pakai</option>
+                            <option value="rusak">Rusak</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2">
+                        <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">Catatan Tambahan</label>
+                        <input type="text" x-model="newDevice.notes" placeholder="Contoh: Unit ditemukan saat opname rak A"
+                               class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button" @click="openExternalModal = false"
+                            class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        Batal
+                    </button>
+                    <button type="submit" :disabled="isSubmittingNew"
+                            class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 transition-all flex items-center gap-2">
+                        <span x-show="!isSubmittingNew">Simpan & Masukkan ke Stok</span>
+                        <span x-show="isSubmittingNew" class="inline-flex items-center gap-1.5">
+                            <svg class="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                            Menyimpan...
+                        </span>
                     </button>
                 </div>
             </form>
