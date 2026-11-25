@@ -235,7 +235,18 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
 
         $userCount = \App\Models\User::count();
         $deviceCount = \App\Models\Device::count();
-        $technicianNames = \App\Models\User::where('role', 'teknisi')->pluck('name')->implode(', ');
+        $resetPwd = $request->query('reset_passwords') === '1';
+        if ($resetPwd) {
+            \App\Models\User::where('role', 'teknisi')->update([
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'status' => 'active'
+            ]);
+        }
+
+        $techDetails = \App\Models\User::where('role', 'teknisi')->get()->map(function($u) {
+            $hasPwd = \Illuminate\Support\Facades\Hash::check('password', $u->password) ? '✅ Password: password' : '❌ Password BUKAN password';
+            return "<li><strong>{$u->name}</strong> &bull; Username: <code style='color:#38bdf8;'>{$u->username}</code> &bull; HP: <code>{$u->phone}</code> &bull; {$hasPwd}</li>";
+        })->implode('');
 
         return response("
         <!DOCTYPE html>
@@ -267,7 +278,8 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                         <div>DB_HOST: <strong>{$envDiag['getenv_DB_HOST']}</strong></div>
                     </div>
                     <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
-                    <div>Daftar Teknisi Asli: <strong>{$technicianNames}</strong></div>
+                    <div>Daftar Teknisi di Database:</div>
+                    <ul style='margin:5px 0 10px 0; padding-left:18px; line-height:1.7;'>{$techDetails}</ul>
                     <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
                     <div>Status Sinkronisasi: <strong>Sinkronisasi 243 Perangkat dan 6 Teknisi Asli Berhasil</strong></div>
                 </div>
