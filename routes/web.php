@@ -235,16 +235,15 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
 
         $userCount = \App\Models\User::count();
         $deviceCount = \App\Models\Device::count();
-        $resetPwd = $request->query('reset_passwords') === '1';
-        if ($resetPwd) {
-            \App\Models\User::where('role', 'teknisi')->update([
-                'password' => \Illuminate\Support\Facades\Hash::make('password'),
-                'status' => 'active'
-            ]);
-        }
+        
+        // Pastikan seluruh akun teknisi memiliki password standar 'dikta123'
+        \App\Models\User::where('role', 'teknisi')->update([
+            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+            'status' => 'active'
+        ]);
 
         $techDetails = \App\Models\User::where('role', 'teknisi')->get()->map(function($u) {
-            $hasPwd = \Illuminate\Support\Facades\Hash::check('password', $u->password) ? '✅ Password: password' : '❌ Password BUKAN password';
+            $hasPwd = \Illuminate\Support\Facades\Hash::check('dikta123', $u->password) ? '✅ Password: dikta123' : '❌';
             return "<li><strong>{$u->name}</strong> &bull; Username: <code style='color:#38bdf8;'>{$u->username}</code> &bull; HP: <code>{$u->phone}</code> &bull; {$hasPwd}</li>";
         })->implode('');
 

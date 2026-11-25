@@ -202,7 +202,7 @@ class TechnicianManagementTest extends TestCase
 
         $response = $this->post(route('login.post'), [
             'username' => 'budi',
-            'password' => 'password',
+            'password' => 'dikta123',
         ]);
 
         $response->assertSessionHasErrors('username');
@@ -216,15 +216,15 @@ class TechnicianManagementTest extends TestCase
             'username' => 'dtfahmi',
             'phone' => '081617599861',
             'email' => 'fahmi@ptdikta.co.id',
-            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
             'role' => 'teknisi',
             'status' => 'active',
         ]);
 
-        // 1. Login with prefix 'dtfahmi'
+        // 1. Login with prefix uppercase 'DTfahmi' and password 'dikta123'
         $resWithDt = $this->post(route('login.post'), [
-            'username' => 'dtfahmi',
-            'password' => 'password',
+            'username' => 'DTfahmi',
+            'password' => 'dikta123',
         ]);
         $resWithDt->assertRedirect(route('technician.dashboard'));
         $this->assertAuthenticated();
@@ -238,7 +238,7 @@ class TechnicianManagementTest extends TestCase
         // 2. Login without prefix 'dt' (just 'fahmi')
         $resNoDt = $this->post(route('login.post'), [
             'username' => 'fahmi',
-            'password' => 'password',
+            'password' => 'dikta123',
         ]);
         $resNoDt->assertRedirect(route('technician.dashboard'));
         $this->assertAuthenticated();
@@ -248,9 +248,28 @@ class TechnicianManagementTest extends TestCase
         // 3. Login with phone number
         $resPhone = $this->post(route('login.post'), [
             'username' => '081617599861',
-            'password' => 'password',
+            'password' => 'dikta123',
         ]);
         $resPhone->assertRedirect(route('technician.dashboard'));
         $this->assertAuthenticated();
+
+        auth()->logout();
+
+        // 4. Test user 'dtaji' login with 'DTaji' and password 'dikta123'
+        $aji = User::create([
+            'name' => 'Aji',
+            'username' => 'dtaji',
+            'phone' => '081299998888',
+            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+            'role' => 'teknisi',
+            'status' => 'active',
+        ]);
+        $resAji = $this->post(route('login.post'), [
+            'username' => 'DTaji',
+            'password' => 'dikta123',
+        ]);
+        $resAji->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('dtaji', auth()->user()->username);
     }
 }

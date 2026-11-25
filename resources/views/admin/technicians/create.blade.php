@@ -35,9 +35,9 @@
                     </label>
                     <input type="text" name="username" id="username" required value="{{ old('username') }}"
                            autocapitalize="none" autocorrect="off" spellcheck="false"
-                           placeholder="contoh: budi, teknisi1"
+                           placeholder="contoh: DTaji, DTfahmi, dtmoko"
                            class="w-full px-4 py-2.5 text-xs bg-slate-50 border @error('username') border-rose-500 bg-rose-50/20 @else border-slate-300 @enderror rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all font-mono">
-                    <p class="text-[11px] text-slate-500 mt-1">Username login teknisi (bebas huruf besar/kecil).</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Username login teknisi (misal: DTaji, otomatis toleran huruf besar/kecil).</p>
                     @error('username')
                         <p class="text-[11px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
                     @enderror
@@ -77,7 +77,7 @@
                     </label>
                     <div class="relative">
                         <input type="password" name="password" id="password" required
-                               placeholder="Minimal 6 karakter"
+                               placeholder="Minimal 6 karakter (standar: dikta123)"
                                class="w-full pl-4 pr-10 py-2.5 text-xs bg-slate-50 border @error('password') border-rose-500 bg-rose-50/20 @else border-slate-300 @enderror rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:bg-white transition-all font-mono">
                         <button type="button" onclick="togglePasswordVisibility('password', 'eyeIcon1')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
                             <svg id="eyeIcon1" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
