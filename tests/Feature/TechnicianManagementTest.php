@@ -208,4 +208,49 @@ class TechnicianManagementTest extends TestCase
         $response->assertSessionHasErrors('username');
         $this->assertGuest();
     }
+
+    public function test_technician_can_login_with_or_without_dt_prefix_and_access_dashboard()
+    {
+        $tech = User::create([
+            'name' => 'Fahmi Hidayat',
+            'username' => 'dtfahmi',
+            'phone' => '081617599861',
+            'email' => 'fahmi@ptdikta.co.id',
+            'password' => \Illuminate\Support\Facades\Hash::make('password'),
+            'role' => 'teknisi',
+            'status' => 'active',
+        ]);
+
+        // 1. Login with prefix 'dtfahmi'
+        $resWithDt = $this->post(route('login.post'), [
+            'username' => 'dtfahmi',
+            'password' => 'password',
+        ]);
+        $resWithDt->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+
+        $dashRes = $this->get(route('technician.dashboard'));
+        $dashRes->assertStatus(200);
+        $dashRes->assertSee('Fahmi Hidayat');
+
+        auth()->logout();
+
+        // 2. Login without prefix 'dt' (just 'fahmi')
+        $resNoDt = $this->post(route('login.post'), [
+            'username' => 'fahmi',
+            'password' => 'password',
+        ]);
+        $resNoDt->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+
+        auth()->logout();
+
+        // 3. Login with phone number
+        $resPhone = $this->post(route('login.post'), [
+            'username' => '081617599861',
+            'password' => 'password',
+        ]);
+        $resPhone->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+    }
 }

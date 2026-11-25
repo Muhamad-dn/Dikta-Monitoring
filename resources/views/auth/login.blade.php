@@ -175,8 +175,7 @@
             }
         }
 
-        // Efek loading / refresh minimal 2 detik saat tombol diklik
-        let isAuthenticating = false;
+        // Respon submit instan tanpa delay artificial untuk kompatibilitas penuh mobile & desktop
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');
         const loginBtnText = document.getElementById('loginBtnText');
@@ -185,31 +184,20 @@
 
         if (loginForm) {
             loginForm.addEventListener('submit', function (e) {
-                if (isAuthenticating) {
-                    return;
-                }
-
                 const usernameVal = document.getElementById('username').value.trim();
                 const passwordVal = document.getElementById('password').value;
 
                 if (!usernameVal || !passwordVal) {
-                    return; // Biarkan validasi HTML bawaan berjalan jika kosong
+                    return;
                 }
 
-                e.preventDefault();
-                isAuthenticating = true;
-
-                // Ubah status tombol menjadi loading visual (tanpa disable atribut agar tidak diblokir browser mobile)
-                loginBtn.classList.add('pointer-events-none', 'opacity-80', 'cursor-wait');
+                // Tampilkan indikator loading dan biarkan form ter-submit secara instan
+                if (loginBtn) {
+                    loginBtn.classList.add('pointer-events-none', 'opacity-85', 'cursor-wait');
+                }
                 if (loginBtnSpinner) loginBtnSpinner.classList.remove('hidden');
                 if (loginBtnIcon) loginBtnIcon.classList.add('hidden');
-                if (loginBtnText) loginBtnText.textContent = 'Memverifikasi Data...';
-
-                // Tahan animasi loading minimal 2 detik (2000 ms) sebelum submit
-                setTimeout(function () {
-                    if (loginBtnText) loginBtnText.textContent = 'Membuka Sesi...';
-                    HTMLFormElement.prototype.submit.call(loginForm);
-                }, 2000);
+                if (loginBtnText) loginBtnText.textContent = 'Memverifikasi...';
             });
         }
     </script>
