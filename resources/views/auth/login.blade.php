@@ -78,6 +78,13 @@
     <div class="mt-7 sm:mx-auto sm:w-full sm:max-w-md px-4 relative z-10">
         <div class="bg-white/95 backdrop-blur-2xl py-8 px-6 sm:px-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.22),0_10px_25px_-10px_rgba(247,22,22,0.18)] rounded-2xl border border-white/80 ring-1 ring-slate-900/5">
 
+            @if(session('info'))
+                <div class="mb-5 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm flex items-center gap-2.5">
+                    <svg class="w-5 h-5 text-sky-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>{{ session('info') }}</span>
+                </div>
+            @endif
+
             @if(session('error'))
                 <div class="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center gap-2.5">
                     <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>

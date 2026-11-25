@@ -272,4 +272,21 @@ class TechnicianManagementTest extends TestCase
         $this->assertAuthenticated();
         $this->assertEquals('dtaji', auth()->user()->username);
     }
+
+    public function test_logout_works_via_post_and_get_without_419_csrf_error()
+    {
+        $tech = User::where('username', 'budi')->first();
+        $this->actingAs($tech);
+
+        // 1. POST logout without CSRF token (excluded from CSRF check)
+        $postRes = $this->post(route('logout'));
+        $postRes->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        // 2. GET logout directly
+        $this->actingAs($tech);
+        $getRes = $this->get(route('logout'));
+        $getRes->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
 }

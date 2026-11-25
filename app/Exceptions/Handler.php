@@ -38,14 +38,35 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
 
-        // Tangani TokenMismatchException (419 Page Expired) agar selalu dialihkan ke login secara mulus
-        $this->renderable(function (TokenMismatchException $e, $request) {
+    /**
+     * Render an exception into an HTTP response.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Throwable  $e
+     * @return \Symfony\Component\HttpFoundation\Response
+     *
+     * @throws \Throwable
+     */
+    public function render($request, Throwable $e)
+    {
+        // Tangani TokenMismatchException atau status HTTP 419 (Page Expired) agar tidak pernah memunculkan halaman error 419
+        if ($e instanceof TokenMismatchException ||
+            ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() === 419)) {
+
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Sesi telah kedaluwarsa. Silakan refresh halaman.'], 419);
             }
 
-            return redirect()->route('login')->with('error', 'Sesi login telah diperbarui secara otomatis. Silakan masukkan kredensial Anda.');
-        });
+            if ($request->is('logout')) {
+                \Illuminate\Support\Facades\Auth::logout();
+                return redirect()->route('login')->with('success', 'Anda telah berhasil logout.');
+            }
+
+            return redirect()->route('login')->with('info', 'Sesi telah diperbarui otomatis. Silakan masuk kembali.');
+        }
+
+        return parent::render($request, $e);
     }
 }
