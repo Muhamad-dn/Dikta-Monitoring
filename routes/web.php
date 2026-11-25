@@ -25,8 +25,7 @@ use App\Http\Controllers\Technician\TaskController as TechTaskController;
 Route::get('/', function () {
     if (auth()->check()) {
         return match (auth()->user()->role) {
-            'admin' => redirect()->route('admin.dashboard'),
-            'koordinator' => redirect()->route('coordinator.dashboard'),
+            'admin', 'koordinator' => redirect()->route('admin.dashboard'),
             'teknisi' => redirect()->route('technician.dashboard'),
             default => redirect()->route('login'),
         };
@@ -41,10 +40,10 @@ Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->nam
 
 /*
 |--------------------------------------------------------------------------
-| Admin Routes (Role: admin)
+| Admin & Coordinator Routes (Role: admin, koordinator)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'role:admin,koordinator'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     // Devices & Stock
@@ -79,9 +78,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/stock-opname/{stockOpname}/print', [AdminStockOpnameController::class, 'print'])->name('stock-opname.print');
     Route::delete('/stock-opname/{stockOpname}', [AdminStockOpnameController::class, 'destroy'])->name('stock-opname.destroy');
 
-    // Technicians
-    Route::patch('/technicians/{technician}/toggle-status', [AdminTechnicianController::class, 'toggleStatus'])->name('technicians.toggle-status');
-    Route::resource('/technicians', AdminTechnicianController::class)->except(['show']);
+    // Technicians (Hanya Admin)
+    Route::middleware('role:admin')->group(function () {
+        Route::patch('/technicians/{technician}/toggle-status', [AdminTechnicianController::class, 'toggleStatus'])->name('technicians.toggle-status');
+        Route::resource('/technicians', AdminTechnicianController::class)->except(['show']);
+    });
 
     // Audit Trail / History
     Route::get('/history', [AdminDeviceHistoryController::class, 'index'])->name('history.index');
@@ -100,7 +101,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'role:koordinator'])->prefix('coordinator')->name('coordinator.')->group(function () {
-    Route::get('/dashboard', [CoordDashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', function () {
+        return redirect()->route('admin.dashboard');
+    })->name('dashboard');
 
     // Work Orders
     Route::resource('/work-orders', CoordWorkOrderController::class);
@@ -241,6 +244,20 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
             'status' => 'active'
         ]);
+
+        // Pastikan akun Koordinator Wulan aktif dengan password 'dikta123'
+        \App\Models\User::updateOrCreate(
+            ['username' => 'wulan'],
+            [
+                'name' => 'Wulan',
+                'username' => 'wulan',
+                'email' => 'wulan@ptdikta.co.id',
+                'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+                'role' => 'koordinator',
+                'phone' => '081234567006',
+                'status' => 'active',
+            ]
+        );
 
         $techDetails = \App\Models\User::where('role', 'teknisi')->get()->map(function($u) {
             $hasPwd = \Illuminate\Support\Facades\Hash::check('dikta123', $u->password) ? '✅ Password: dikta123' : '❌';

@@ -255,7 +255,7 @@
         
         <!-- Header Brand: Logo DT Baru & DEVTRACK Typography -->
         <div class="py-3 px-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
-            <a href="{{ auth()->user()->role === 'admin' ? route('admin.dashboard') : (auth()->user()->role === 'koordinator' ? route('coordinator.dashboard') : route('technician.dashboard')) }}" 
+            <a href="{{ auth()->user()->role === 'teknisi' ? route('technician.dashboard') : route('admin.dashboard') }}" 
                title="Kembali ke Dashboard Utama"
                class="flex items-center gap-2.5 transition-transform hover:scale-102">
                 <!-- White backdrop badge for 100% sharp brand logo contrast (never clashes) -->
@@ -293,7 +293,7 @@
         <!-- Menu Ramping -->
         <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
 
-            @if(auth()->user()->role === 'admin')
+            @if(in_array(auth()->user()->role, ['admin', 'koordinator']))
                 <a href="{{ route('admin.dashboard') }}" 
                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
@@ -318,38 +318,19 @@
                     <span>Stock Opname</span>
                 </a>
 
+                @if(auth()->user()->role === 'admin')
                 <a href="{{ route('admin.technicians.index') }}" 
                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.technicians.*') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     <span>Kelola Teknisi</span>
                 </a>
+                @endif
 
                 <a href="{{ route('admin.history.index') }}" 
                    class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('admin.history.index') ? 'bg-gradient-to-r from-red-600 to-[#F71616] text-white shadow-sm shadow-red-950/40 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <span>Riwayat Perpindahan</span>
                 </a>
-            @endif
-
-            @if(auth()->user()->role === 'koordinator')
-                <a href="{{ route('coordinator.dashboard') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('coordinator.dashboard') ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                    <span>Dashboard Koordinator</span>
-                </a>
-
-                <a href="{{ route('coordinator.tracking.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('coordinator.tracking.*') ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                    <span>Pelacakan Perangkat</span>
-                </a>
-
-                <a href="{{ route('coordinator.work-orders.index') }}" 
-                   class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('coordinator.work-orders.*') ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    <span>Penugasan NOJAR</span>
-                </a>
-
             @endif
 
             @if(auth()->user()->role === 'teknisi')
@@ -408,7 +389,7 @@
                     <button @click="mobileMenuOpen = true" class="md:hidden p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                     </button>
-                    <a href="{{ auth()->user()->role === 'admin' ? route('admin.dashboard') : (auth()->user()->role === 'koordinator' ? route('coordinator.dashboard') : route('technician.dashboard')) }}" class="md:hidden flex items-center gap-2">
+                    <a href="{{ auth()->user()->role === 'teknisi' ? route('technician.dashboard') : route('admin.dashboard') }}" class="md:hidden flex items-center gap-2">
                         <div class="h-8 w-8 p-1 bg-white rounded-lg shadow-2xs border border-slate-200 flex items-center justify-center shrink-0">
                             <img src="{{ asset('images/devtrack-dt-icon.png') }}" alt="DEVTRACK Logo" class="h-full w-auto object-contain">
                         </div>

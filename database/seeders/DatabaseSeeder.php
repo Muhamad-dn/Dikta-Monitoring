@@ -28,9 +28,19 @@ class DatabaseSeeder extends Seeder
             'name' => 'Hendra Setiawan (Koordinator)',
             'username' => 'koordinator',
             'email' => 'koordinator@ptdikta.co.id',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('dikta123'),
             'role' => 'koordinator',
             'phone' => '081234567002',
+            'status' => 'active',
+        ]);
+
+        $wulan = User::create([
+            'name' => 'Wulan',
+            'username' => 'wulan',
+            'email' => 'wulan@ptdikta.co.id',
+            'password' => Hash::make('dikta123'),
+            'role' => 'koordinator',
+            'phone' => '081234567006',
             'status' => 'active',
         ]);
 
