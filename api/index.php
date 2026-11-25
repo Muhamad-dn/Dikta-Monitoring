@@ -27,6 +27,13 @@ putenv('APP_PACKAGES_CACHE=/tmp/bootstrap/cache/packages.php');
 putenv('APP_ROUTES_CACHE=/tmp/bootstrap/cache/routes.php');
 putenv('APP_SERVICES_CACHE=/tmp/bootstrap/cache/services.php');
 
+// Gunakan driver session 'cookie' secara default di serverless Vercel agar sesi tidak hilang/mismatch saat berganti instance
+if (!getenv('SESSION_DRIVER') && !isset($_ENV['SESSION_DRIVER'])) {
+    putenv('SESSION_DRIVER=cookie');
+    $_ENV['SESSION_DRIVER'] = 'cookie';
+    $_SERVER['SESSION_DRIVER'] = 'cookie';
+}
+
 // Cek koneksi database dari environment (misal pgsql, mysql, atau sqlite)
 $dbConnection = getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? ($_SERVER['DB_CONNECTION'] ?? null));
 $dbHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? null));
