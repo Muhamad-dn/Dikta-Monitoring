@@ -139,11 +139,11 @@ class TechnicianManagementTest extends TestCase
         $admin = User::where('role', 'admin')->first();
 
         $this->actingAs($admin)->post(route('admin.technicians.store'), [
-            'name' => 'Agus Santoso',
-            'username' => 'agus_san',
+            'name' => 'Surya Saputra',
+            'username' => 'dtsurya',
             'phone' => '081298765432',
-            'password' => 'agus12345',
-            'password_confirmation' => 'agus12345',
+            'password' => 'surya12345',
+            'password_confirmation' => 'surya12345',
         ]);
 
         auth()->logout();
@@ -151,12 +151,22 @@ class TechnicianManagementTest extends TestCase
         // Login using phone number instead of username
         $loginResponse = $this->post(route('login.post'), [
             'username' => '081298765432',
-            'password' => 'agus12345',
+            'password' => 'surya12345',
         ]);
 
         $loginResponse->assertRedirect(route('technician.dashboard'));
         $this->assertAuthenticated();
-        $this->assertEquals('agus_san', auth()->user()->username);
+        $this->assertEquals('dtsurya', auth()->user()->username);
+
+        // Also test logging in without 'dt' prefix (input: 'surya')
+        auth()->logout();
+        $loginNoDt = $this->post(route('login.post'), [
+            'username' => 'surya',
+            'password' => 'surya12345',
+        ]);
+        $loginNoDt->assertRedirect(route('technician.dashboard'));
+        $this->assertAuthenticated();
+        $this->assertEquals('dtsurya', auth()->user()->username);
     }
 
     public function test_technician_can_login_using_email_with_mixed_case()
