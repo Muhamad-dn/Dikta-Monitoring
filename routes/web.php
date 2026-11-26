@@ -239,14 +239,32 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
         $userCount = \App\Models\User::count();
         $deviceCount = \App\Models\Device::count();
         
-        // Pastikan seluruh akun teknisi memiliki password standar 'dikta123'
-        \App\Models\User::where('role', 'teknisi')->update([
-            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
-            'status' => 'active'
-        ]);
+        // 1. Pastikan akun Admin Nasrul aktif dengan password 'dikta123'
+        $admin = \App\Models\User::where('username', 'admin')->orWhere('username', 'nasrul')->first();
+        if ($admin) {
+            $admin->update([
+                'name' => 'Nasrul',
+                'username' => 'nasrul',
+                'email' => 'nasrul@ptdikta.co.id',
+                'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+                'role' => 'admin',
+                'status' => 'active',
+            ]);
+        } else {
+            \App\Models\User::create([
+                'name' => 'Nasrul',
+                'username' => 'nasrul',
+                'email' => 'nasrul@ptdikta.co.id',
+                'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+                'role' => 'admin',
+                'phone' => '081234567001',
+                'status' => 'active',
+            ]);
+        }
+        \App\Models\User::where('username', 'admin')->where('username', '!=', 'nasrul')->delete();
 
-        // Pastikan akun Koordinator Wulan aktif dengan password 'dikta123'
-        \App\Models\User::updateOrCreate(
+        // 2. Pastikan akun Koordinator Wulan aktif dengan password 'dikta123'
+        $wulan = \App\Models\User::updateOrCreate(
             ['username' => 'wulan'],
             [
                 'name' => 'Wulan',
@@ -258,6 +276,24 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                 'status' => 'active',
             ]
         );
+
+        // Alihkan semua penugasan dari koordinator lama ke Wulan
+        \App\Models\WorkOrder::where('coordinator_id', '!=', $wulan->id)->update(['coordinator_id' => $wulan->id]);
+
+        // Hapus akun koordinator lama (seperti Hendra / username 'koordinator')
+        \App\Models\User::where('role', 'koordinator')->where('username', '!=', 'wulan')->delete();
+
+        // 3. Pastikan seluruh 6 akun teknisi resmi aktif dengan password 'dikta123'
+        $validTechs = ['galang', 'agim', 'naufal', 'aldi', 'deni', 'aji'];
+        \App\Models\User::whereIn('username', $validTechs)->update([
+            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+            'status' => 'active',
+            'role' => 'teknisi',
+        ]);
+
+        // Hapus user dummy/lama yang tidak terpakai
+        $allValid = array_merge(['nasrul', 'wulan'], $validTechs);
+        \App\Models\User::whereNotIn('username', $allValid)->delete();
 
         $techDetails = \App\Models\User::where('role', 'teknisi')->get()->map(function($u) {
             $hasPwd = \Illuminate\Support\Facades\Hash::check('dikta123', $u->password) ? '✅ Password: dikta123' : '❌';

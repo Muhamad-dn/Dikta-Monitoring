@@ -13,24 +13,14 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Akun Pengguna
+        // 1. Akun Pengguna Resmi PT DIKTA
         $admin = User::create([
-            'name' => 'Administrator Sistem',
-            'username' => 'admin',
-            'email' => 'admin@ptdikta.co.id',
-            'password' => Hash::make('password'),
+            'name' => 'Nasrul',
+            'username' => 'nasrul',
+            'email' => 'nasrul@ptdikta.co.id',
+            'password' => Hash::make('dikta123'),
             'role' => 'admin',
             'phone' => '081234567001',
-            'status' => 'active',
-        ]);
-
-        $koordinator = User::create([
-            'name' => 'Hendra Setiawan (Koordinator)',
-            'username' => 'koordinator',
-            'email' => 'koordinator@ptdikta.co.id',
-            'password' => Hash::make('dikta123'),
-            'role' => 'koordinator',
-            'phone' => '081234567002',
             'status' => 'active',
         ]);
 
@@ -43,34 +33,68 @@ class DatabaseSeeder extends Seeder
             'phone' => '081234567006',
             'status' => 'active',
         ]);
+        $koordinator = $wulan;
 
-        $teknisiBudi = User::create([
-            'name' => 'Budi Santoso',
-            'username' => 'budi',
-            'email' => 'budi@ptdikta.co.id',
+        $teknisiGalang = User::create([
+            'name' => 'Galang Firmansyah',
+            'username' => 'galang',
+            'email' => 'galang@ptdikta.co.id',
+            'password' => Hash::make('dikta123'),
+            'role' => 'teknisi',
+            'phone' => '081234567002',
+            'status' => 'active',
+        ]);
+        $teknisiBudi = $teknisiGalang;
+
+        $teknisiAgim = User::create([
+            'name' => 'Agim Nastiar',
+            'username' => 'agim',
+            'email' => 'agim@ptdikta.co.id',
             'password' => Hash::make('dikta123'),
             'role' => 'teknisi',
             'phone' => '081234567003',
             'status' => 'active',
         ]);
+        $teknisiAgus = $teknisiAgim;
 
-        $teknisiAgus = User::create([
-            'name' => 'Agus Pratama',
-            'username' => 'agus',
-            'email' => 'agus@ptdikta.co.id',
+        $teknisiNaufal = User::create([
+            'name' => 'Naufal Islami',
+            'username' => 'naufal',
+            'email' => 'naufal@ptdikta.co.id',
             'password' => Hash::make('dikta123'),
             'role' => 'teknisi',
             'phone' => '081234567004',
             'status' => 'active',
         ]);
+        $teknisiRian = $teknisiNaufal;
 
-        $teknisiRian = User::create([
-            'name' => 'Rian Hidayat',
-            'username' => 'rian',
-            'email' => 'rian@ptdikta.co.id',
+        $teknisiAldi = User::create([
+            'name' => 'Aldi Saputra',
+            'username' => 'aldi',
+            'email' => 'aldi@ptdikta.co.id',
             'password' => Hash::make('dikta123'),
             'role' => 'teknisi',
             'phone' => '081234567005',
+            'status' => 'active',
+        ]);
+
+        $teknisiDeni = User::create([
+            'name' => 'Muhammad Deni Fiqri',
+            'username' => 'deni',
+            'email' => 'deni@ptdikta.co.id',
+            'password' => Hash::make('dikta123'),
+            'role' => 'teknisi',
+            'phone' => '081234567007',
+            'status' => 'active',
+        ]);
+
+        $teknisiAji = User::create([
+            'name' => 'Mohammad Zyia Ulhaq Pay',
+            'username' => 'aji',
+            'email' => 'aji@ptdikta.co.id',
+            'password' => Hash::make('dikta123'),
+            'role' => 'teknisi',
+            'phone' => '081234567008',
             'status' => 'active',
         ]);
 

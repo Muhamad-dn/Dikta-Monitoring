@@ -74,10 +74,10 @@ class TechnicianManagementTest extends TestCase
     {
         $admin = User::where('role', 'admin')->first();
 
-        // Coba mendaftarkan teknisi dengan username 'budi' yang sudah ada
+        // Coba mendaftarkan teknisi dengan username 'galang' yang sudah ada
         $response = $this->actingAs($admin)->post(route('admin.technicians.store'), [
-            'name' => 'Budi Duplikat',
-            'username' => 'budi',
+            'name' => 'Galang Duplikat',
+            'username' => 'galang',
             'phone' => '081200001111',
             'password' => 'secret123',
             'password_confirmation' => 'secret123',
@@ -197,11 +197,11 @@ class TechnicianManagementTest extends TestCase
 
     public function test_inactive_technician_cannot_login()
     {
-        $tech = User::where('username', 'budi')->first();
+        $tech = User::where('role', 'teknisi')->first();
         $tech->update(['status' => 'inactive']);
 
         $response = $this->post(route('login.post'), [
-            'username' => 'budi',
+            'username' => $tech->username,
             'password' => 'dikta123',
         ]);
 
@@ -255,27 +255,27 @@ class TechnicianManagementTest extends TestCase
 
         auth()->logout();
 
-        // 4. Test user 'dtaji' login with 'DTaji' and password 'dikta123'
-        $aji = User::create([
-            'name' => 'Aji',
-            'username' => 'dtaji',
+        // 4. Test user 'dtseno' login with 'DTseno' and password 'dikta123'
+        $seno = User::create([
+            'name' => 'Seno',
+            'username' => 'dtseno',
             'phone' => '081299998888',
             'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
             'role' => 'teknisi',
             'status' => 'active',
         ]);
-        $resAji = $this->post(route('login.post'), [
-            'username' => 'DTaji',
+        $resSeno = $this->post(route('login.post'), [
+            'username' => 'DTseno',
             'password' => 'dikta123',
         ]);
-        $resAji->assertRedirect(route('technician.dashboard'));
+        $resSeno->assertRedirect(route('technician.dashboard'));
         $this->assertAuthenticated();
-        $this->assertEquals('dtaji', auth()->user()->username);
+        $this->assertEquals('dtseno', auth()->user()->username);
     }
 
     public function test_logout_works_via_post_and_get_without_419_csrf_error()
     {
-        $tech = User::where('username', 'budi')->first();
+        $tech = User::where('role', 'teknisi')->first();
         $this->actingAs($tech);
 
         // 1. POST logout without CSRF token (excluded from CSRF check)

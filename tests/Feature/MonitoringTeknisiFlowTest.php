@@ -29,14 +29,14 @@ class MonitoringTeknisiFlowTest extends TestCase
     public function test_admin_can_login_and_access_dashboard()
     {
         $response = $this->post('/login', [
-            'username' => 'admin',
-            'password' => 'password',
+            'username' => 'nasrul',
+            'password' => 'dikta123',
         ]);
 
         $response->assertRedirect('/admin/dashboard');
         $this->assertAuthenticated();
 
-        $dash = $this->actingAs(User::where('username', 'admin')->first())->get('/admin/dashboard');
+        $dash = $this->actingAs(User::where('username', 'nasrul')->first())->get('/admin/dashboard');
         $dash->assertStatus(200);
         $dash->assertSee('Dashboard Administrator');
     }
@@ -44,7 +44,7 @@ class MonitoringTeknisiFlowTest extends TestCase
     public function test_coordinator_can_create_work_order_and_allocate_device()
     {
         $coordinator = User::where('role', 'koordinator')->first();
-        $technician = User::where('username', 'budi')->first();
+        $technician = User::where('role', 'teknisi')->first();
         $device = Device::where('stock_status', 'tersedia_pt')->first();
 
         $response = $this->actingAs($coordinator)->post('/coordinator/work-orders', [
@@ -75,7 +75,7 @@ class MonitoringTeknisiFlowTest extends TestCase
 
     public function test_technician_scan_and_pickup_device_validation()
     {
-        $technician = User::where('username', 'budi')->first();
+        $technician = User::where('role', 'teknisi')->first();
         $task = WorkOrder::where('nojar', 'NJR001')->first();
         $device = $task->device;
 
@@ -114,7 +114,7 @@ class MonitoringTeknisiFlowTest extends TestCase
 
     public function test_technician_flow_to_completion()
     {
-        $technician = User::where('username', 'budi')->first();
+        $technician = User::where('role', 'teknisi')->first();
         $task = WorkOrder::where('nojar', 'NJR001')->first();
         $device = $task->device;
 
