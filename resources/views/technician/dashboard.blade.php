@@ -2,45 +2,13 @@
 
 @section('title', 'Mobile Teknisi - DEVTRACK')
 @section('page_title', 'Mobile Teknisi')
-@section('page_subtitle', 'Scan dan update status perangkat')
+@section('page_subtitle', 'Pencarian dan update status perangkat')
 
 @section('content')
 <div class="max-w-lg mx-auto pb-24" x-data="technicianMobileApp()" @open-profile-modal.window="profileModal = true">
 
-    <!-- TAB 1: SCAN (MODE TEKNISI) -->
+    <!-- TAB 1: PENCARIAN (HANYA PENCARIAN KODE PERANGKAT) -->
     <div x-show="activeTab === 'scan'" x-transition class="space-y-4">
-        
-        <!-- Mode Teknisi Gradient Banner -->
-        <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-teal-500 text-white shadow-md flex items-center justify-between">
-            <div>
-                <div class="text-xs font-medium text-blue-100">Mode Teknisi</div>
-                <div class="text-sm sm:text-base font-bold text-white mt-0.5 leading-snug">
-                    Scan dan update status<br class="hidden sm:inline"> perangkat
-                </div>
-            </div>
-            <button type="button" @click="toggleScanner()" 
-                    class="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 shrink-0">
-                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                <span x-text="scannerActive ? 'Tutup' : 'Scan'">Scan</span>
-            </button>
-        </div>
-
-        <!-- Scanner Camera Box -->
-        <div x-show="scannerActive" x-cloak class="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3 shadow-lg">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                    <span>Arahkan Kamera ke Barcode / QR Code:</span>
-                </span>
-                <button type="button" @click="stopScanner()" class="text-xs text-rose-400 font-semibold hover:underline">
-                    ✕ Tutup Kamera
-                </button>
-            </div>
-            <div id="qr-reader" class="w-full rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center"></div>
-            <div class="text-[11px] text-slate-400 text-center">
-                Mendukung Linear Barcode (Code 128 / Code 39) & QR Code perangkat.
-            </div>
-        </div>
 
         <!-- Pencarian / Input Manual Kode Perangkat -->
         <div class="p-4 rounded-2xl bg-white dark:bg-[#131c31] border border-slate-200 dark:border-[#243048] shadow-sm space-y-3">
@@ -62,24 +30,6 @@
             </div>
         </div>
 
-        <!-- Kolom Daftarkan Perangkat Baru -->
-        <div class="p-4 rounded-2xl bg-white dark:bg-[#131c31] border border-slate-200 dark:border-[#243048] shadow-sm flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                </div>
-                <div class="min-w-0">
-                    <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">Daftarkan Perangkat Baru</h3>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Form pendaftaran unit baru ke sistem inventaris</p>
-                </div>
-            </div>
-            <a href="{{ route('technician.devices.create') }}" 
-               class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 shrink-0 transition-all">
-                <span>Daftarkan</span>
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </a>
-        </div>
-
         <!-- Shortcut Cepat ke Perangkat Saya -->
         @if($carriedDevices->count() > 0)
             <div class="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 flex items-center justify-between">
@@ -98,7 +48,7 @@
     <!-- TAB 2: SAYA (PERANGKAT SAYA) -->
     <div x-show="activeTab === 'saya'" x-transition class="space-y-3.5">
         
-        <!-- Header Perangkat Saya -->
+        <!-- Header Perangkat Saya (Tombol kanan atas telah dihilangkan) -->
         <div class="flex items-center justify-between px-1">
             <div>
                 <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Perangkat Saya</h2>
@@ -108,11 +58,6 @@
                 <span class="px-2.5 py-1 rounded-full text-xs font-black bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                     {{ $carriedDevices->count() }} Unit
                 </span>
-                <a href="{{ route('technician.devices.create') }}" 
-                   title="Daftarkan Perangkat Baru"
-                   class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
-                    + Daftarkan Perangkat
-                </a>
             </div>
         </div>
 
@@ -209,30 +154,39 @@
             @empty
                 <div class="p-8 text-center bg-white dark:bg-[#131c31] rounded-2xl border border-slate-200 dark:border-[#243048] text-slate-400">
                     <p class="font-bold text-slate-700 dark:text-slate-300 text-sm">Tidak ada perangkat yang dibawa</p>
-                    <p class="text-xs text-slate-400 mt-1">Daftarkan atau scan perangkat baru untuk mulai pengerjaan.</p>
+                    <p class="text-xs text-slate-400 mt-1">Daftarkan atau cari perangkat baru untuk mulai pengerjaan.</p>
                     <a href="{{ route('technician.devices.create') }}" class="mt-3 inline-block px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
                         + Daftarkan Perangkat
                     </a>
                 </div>
             @endforelse
+
+            @if($carriedDevices->count() > 0)
+                <div class="pt-2 text-center">
+                    <a href="{{ route('technician.devices.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>+ Daftarkan Perangkat</span>
+                    </a>
+                </div>
+            @endif
         </div>
 
     </div>
 
-    <!-- TAB 3: UPDATE (UPDATE STATUS LAPANGAN) - PERSIS SCREENSHOT 1 -->
+    <!-- TAB 3: UPDATE (UPDATE STATUS LAPANGAN) -->
     <div x-show="activeTab === 'update'" x-transition class="space-y-4">
         
-        <!-- Mode Teknisi Gradient Banner (Screenshot 1) -->
+        <!-- Mode Teknisi Gradient Banner -->
         <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-600 via-sky-600 to-teal-500 text-white shadow-md flex items-center justify-between">
             <div>
                 <div class="text-xs font-medium text-blue-100">Mode Teknisi</div>
                 <div class="text-sm sm:text-base font-bold text-white mt-0.5 leading-snug">
-                    Scan dan update status<br class="hidden sm:inline"> perangkat
+                    Update status<br class="hidden sm:inline"> perangkat
                 </div>
             </div>
-            <button type="button" @click="activeTab = 'scan'; startScanner();" 
+            <button type="button" @click="activeTab = 'scan'" 
                     class="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 shrink-0">
-                <span>Scan</span>
+                <span>Cari Unit</span>
             </button>
         </div>
 
@@ -475,15 +429,15 @@
 
     </div>
 
-    <!-- BOTTOM NAVIGATION BAR (PERSIS SCREENSHOT 1, 2, 3 DENGAN PILL BIRU AKTIF) -->
+    <!-- BOTTOM NAVIGATION BAR -->
     <nav class="fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border-t border-slate-800 py-2.5 px-3 shadow-2xl">
         <div class="flex items-center justify-around gap-1 max-w-lg mx-auto">
             
-            <!-- 1. Scan -->
+            <!-- 1. Pencarian -->
             <button type="button" @click="activeTab = 'scan'"
                     class="flex-1 py-2 text-center text-xs font-bold transition-all rounded-2xl"
                     :class="activeTab === 'scan' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'">
-                Scan
+                Pencarian
             </button>
 
             <!-- 2. Saya -->
