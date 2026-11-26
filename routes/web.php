@@ -190,12 +190,6 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                 $sqlite = new \PDO("sqlite:{$sqlitePath}");
                 $sqlite->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
-                // Users asli (hapus dummy seeder, masukkan 8 akun asli termasuk 6 teknisi)
-                $users = $sqlite->query("SELECT * FROM users")->fetchAll(\PDO::FETCH_ASSOC);
-                $validUserIds = array_column($users, 'id');
-                \Illuminate\Support\Facades\DB::table('users')->whereNotIn('id', $validUserIds)->delete();
-                \Illuminate\Support\Facades\DB::table('users')->upsert($users, ['id']);
-
                 // Specifications (102 spek)
                 $specs = $sqlite->query("SELECT * FROM device_specifications")->fetchAll(\PDO::FETCH_ASSOC);
                 foreach (array_chunk($specs, 50) as $chunk) {
@@ -276,18 +270,8 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             ]
         );
 
-        // 3. Pastikan seluruh 6 akun teknisi resmi aktif dengan password 'dikta123'
-        $validTechs = ['galang', 'agim', 'naufal', 'aldi', 'deni', 'aji'];
-        \App\Models\User::whereIn('username', $validTechs)->update([
-            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
-            'status' => 'active',
-            'role' => 'teknisi',
-        ]);
-
-        $allValid = array_merge(['nasrul', 'wulan'], $validTechs);
-
-        // Alihkan foreign keys dan hapus akun lama permanen
-        $obsoleteUsers = \App\Models\User::whereNotIn('username', $allValid)->get();
+        // Hapus akun non-resmi lama: admin dan koordinator
+        $obsoleteUsers = \App\Models\User::whereIn('username', ['admin', 'koordinator'])->get();
         if ($obsoleteUsers->isNotEmpty()) {
             $obsIds = $obsoleteUsers->pluck('id')->toArray();
             \App\Models\WorkOrder::whereIn('coordinator_id', $obsIds)->update(['coordinator_id' => $wulan->id]);
@@ -297,6 +281,11 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             \App\Models\DeviceHistory::whereIn('technician_id', $obsIds)->update(['technician_id' => null]);
             \App\Models\User::whereIn('id', $obsIds)->delete();
         }
+
+        // Pastikan semua teknisi yang ada di sistem memiliki password 'dikta123' jika ingin direset
+        \App\Models\User::where('role', 'teknisi')->update([
+            'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+        ]);
 
         $allUsersHtml = \App\Models\User::orderBy('id')->get()->map(function($u) {
             return "<li><strong>" . strtoupper($u->role) . "</strong>: {$u->name} (Username: <code style='color:#38bdf8;'>{$u->username}</code>) &bull; Password: <code>dikta123</code></li>";
