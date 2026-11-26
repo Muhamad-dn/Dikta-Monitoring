@@ -30,12 +30,11 @@ class AuthController extends Controller
         $password = $request->input('password');
         $remember = $request->filled('remember');
 
-        // Cari user yang cocok (case-insensitive & toleran format) berdasarkan:
+        // Cari user yang cocok (case-insensitive & aman) berdasarkan:
         // 1. Username (case-insensitive & tanpa spasi)
-        // 2. Fleksibilitas prefix 'dt' (misal input 'adi' cocok ke 'dtadi', atau sebaliknya)
-        // 3. Email (case-insensitive)
+        // 2. Fleksibilitas prefix 'dt' (misal input 'aji' cocok ke 'dtaji', atau sebaliknya)
+        // 3. Email resmi (case-insensitive)
         // 4. No. HP / WhatsApp (format asli maupun digit murni)
-        // 5. Nama lengkap (case-insensitive)
         $user = User::where(function ($q) use ($rawInput, $cleanInput) {
             $q->whereRaw('LOWER(username) = ?', [$cleanInput])
               ->orWhereRaw('LOWER(username) = ?', [strtolower($rawInput)])
@@ -54,9 +53,6 @@ class AuthController extends Controller
                 $q->orWhere('phone', 'like', "%{$digitsOnly}%")
                   ->orWhere('phone', 'like', "%{$trimmedLeadingZero}%");
             }
-
-            $q->orWhereRaw('LOWER(name) = ?', [strtolower($rawInput)])
-              ->orWhere('name', 'like', "%{$rawInput}%");
         })->first();
 
         if ($user && Hash::check($password, $user->password)) {

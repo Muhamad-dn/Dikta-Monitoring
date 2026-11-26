@@ -42,6 +42,25 @@ class CoordinatorIntegrationTest extends TestCase
         $this->assertEquals('wulan', auth()->user()->username);
     }
 
+    public function test_old_koordinator_and_admin_username_cannot_login()
+    {
+        // 1. Username 'koordinator' harus ditolak
+        $response1 = $this->post(route('login.post'), [
+            'username' => 'koordinator',
+            'password' => 'dikta123',
+        ]);
+        $response1->assertSessionHasErrors('username');
+        $this->assertGuest();
+
+        // 2. Username 'admin' harus ditolak
+        $response2 = $this->post(route('login.post'), [
+            'username' => 'admin',
+            'password' => 'dikta123',
+        ]);
+        $response2->assertSessionHasErrors('username');
+        $this->assertGuest();
+    }
+
     public function test_coordinator_dashboard_is_same_as_admin_except_technician_management()
     {
         $wulan = User::where('username', 'wulan')->first();

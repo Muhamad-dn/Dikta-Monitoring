@@ -251,7 +251,7 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                 'status' => 'active',
             ]);
         } else {
-            \App\Models\User::create([
+            $admin = \App\Models\User::create([
                 'name' => 'Nasrul',
                 'username' => 'nasrul',
                 'email' => 'nasrul@ptdikta.co.id',
@@ -261,7 +261,6 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                 'status' => 'active',
             ]);
         }
-        \App\Models\User::where('username', 'admin')->where('username', '!=', 'nasrul')->delete();
 
         // 2. Pastikan akun Koordinator Wulan aktif dengan password 'dikta123'
         $wulan = \App\Models\User::updateOrCreate(
@@ -277,12 +276,6 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             ]
         );
 
-        // Alihkan semua penugasan dari koordinator lama ke Wulan
-        \App\Models\WorkOrder::where('coordinator_id', '!=', $wulan->id)->update(['coordinator_id' => $wulan->id]);
-
-        // Hapus akun koordinator lama (seperti Hendra / username 'koordinator')
-        \App\Models\User::where('role', 'koordinator')->where('username', '!=', 'wulan')->delete();
-
         // 3. Pastikan seluruh 6 akun teknisi resmi aktif dengan password 'dikta123'
         $validTechs = ['galang', 'agim', 'naufal', 'aldi', 'deni', 'aji'];
         \App\Models\User::whereIn('username', $validTechs)->update([
@@ -291,13 +284,22 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
             'role' => 'teknisi',
         ]);
 
-        // Hapus user dummy/lama yang tidak terpakai
         $allValid = array_merge(['nasrul', 'wulan'], $validTechs);
-        \App\Models\User::whereNotIn('username', $allValid)->delete();
 
-        $techDetails = \App\Models\User::where('role', 'teknisi')->get()->map(function($u) {
-            $hasPwd = \Illuminate\Support\Facades\Hash::check('dikta123', $u->password) ? '✅ Password: dikta123' : '❌';
-            return "<li><strong>{$u->name}</strong> &bull; Username: <code style='color:#38bdf8;'>{$u->username}</code> &bull; HP: <code>{$u->phone}</code> &bull; {$hasPwd}</li>";
+        // Alihkan foreign keys dan hapus akun lama permanen
+        $obsoleteUsers = \App\Models\User::whereNotIn('username', $allValid)->get();
+        if ($obsoleteUsers->isNotEmpty()) {
+            $obsIds = $obsoleteUsers->pluck('id')->toArray();
+            \App\Models\WorkOrder::whereIn('coordinator_id', $obsIds)->update(['coordinator_id' => $wulan->id]);
+            \App\Models\WorkOrder::whereIn('technician_id', $obsIds)->update(['technician_id' => null]);
+            \App\Models\Device::whereIn('current_technician_id', $obsIds)->update(['current_technician_id' => null]);
+            \App\Models\DeviceHistory::whereIn('actor_id', $obsIds)->update(['actor_id' => $admin->id]);
+            \App\Models\DeviceHistory::whereIn('technician_id', $obsIds)->update(['technician_id' => null]);
+            \App\Models\User::whereIn('id', $obsIds)->delete();
+        }
+
+        $allUsersHtml = \App\Models\User::orderBy('id')->get()->map(function($u) {
+            return "<li><strong>" . strtoupper($u->role) . "</strong>: {$u->name} (Username: <code style='color:#38bdf8;'>{$u->username}</code>) &bull; Password: <code>dikta123</code></li>";
         })->implode('');
 
         return response("
@@ -329,9 +331,9 @@ Route::get('/setup-supabase', function (\Illuminate\Http\Request $request) {
                         <div>\$_SERVER['DB_CONNECTION']: <strong>{$envDiag['SERVER_DB_CONNECTION']}</strong></div>
                         <div>DB_HOST: <strong>{$envDiag['getenv_DB_HOST']}</strong></div>
                     </div>
-                    <div>Total Pengguna Siap: <strong>{$userCount} Akun</strong></div>
-                    <div>Daftar Teknisi di Database:</div>
-                    <ul style='margin:5px 0 10px 0; padding-left:18px; line-height:1.7;'>{$techDetails}</ul>
+                    <div>Total Pengguna Siap: <strong>" . \App\Models\User::count() . " Akun</strong></div>
+                    <div style='margin-top:8px;'>Daftar Seluruh Pengguna Resmi di Database:</div>
+                    <ul style='margin:5px 0 10px 0; padding-left:18px; line-height:1.7;'>{$allUsersHtml}</ul>
                     <div>Total Perangkat: <strong>{$deviceCount} Unit</strong></div>
                     <div>Status Sinkronisasi: <strong>Sinkronisasi 243 Perangkat dan 6 Teknisi Asli Berhasil</strong></div>
                 </div>
