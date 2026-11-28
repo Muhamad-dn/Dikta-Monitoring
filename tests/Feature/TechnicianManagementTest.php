@@ -289,4 +289,38 @@ class TechnicianManagementTest extends TestCase
         $getRes->assertRedirect(route('login'));
         $this->assertGuest();
     }
+
+    public function test_technicians_are_paginated_per_10_and_shows_slide_controls()
+    {
+        $admin = User::where('role', 'admin')->first();
+        $this->actingAs($admin);
+
+        // Ensure there are at least 20 technicians
+        $currentCount = User::where('role', 'teknisi')->count();
+        if ($currentCount < 20) {
+            for ($i = $currentCount + 1; $i <= 20; $i++) {
+                User::create([
+                    'name' => "Teknisi Test {$i}",
+                    'username' => "dtuser{$i}",
+                    'email' => "user{$i}@dikta.id",
+                    'phone' => "089999999" . str_pad($i, 2, '0', STR_PAD_LEFT),
+                    'password' => \Illuminate\Support\Facades\Hash::make('dikta123'),
+                    'role' => 'teknisi',
+                    'status' => 'active',
+                ]);
+            }
+        }
+
+        // 1. Akses halaman 1 (Slide 1)
+        $responsePage1 = $this->get(route('admin.technicians.index'));
+        $responsePage1->assertStatus(200);
+        $responsePage1->assertSee('Daftar Teknisi PT DIKTA');
+        $responsePage1->assertSee('10 teknisi per slide');
+        $responsePage1->assertSee('Slide Selanjutnya');
+
+        // 2. Akses halaman 2 (Slide 2)
+        $responsePage2 = $this->get(route('admin.technicians.index', ['page' => 2]));
+        $responsePage2->assertStatus(200);
+        $responsePage2->assertSee('Slide Sebelumnya');
+    }
 }

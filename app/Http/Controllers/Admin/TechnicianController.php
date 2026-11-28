@@ -36,7 +36,12 @@ class TechnicianController extends Controller
             $query->where('status', $request->status);
         }
 
-        $technicians = $query->paginate(10)->withQueryString();
+        $perPage = (int) $request->input('per_page', 10);
+        if (!in_array($perPage, [10, 20, 50, 100])) {
+            $perPage = 10;
+        }
+
+        $technicians = $query->paginate($perPage)->withQueryString();
 
         return view('admin.technicians.index', compact('technicians'));
     }

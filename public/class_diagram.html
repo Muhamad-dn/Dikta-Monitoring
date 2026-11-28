@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Diagram - DEVTRACK PT DIKTA</title>
+    <link rel="icon" type="image/png" href="images/devtrack-dt-icon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; padding: 0 !important; }
+            #diagram-wrapper { box-shadow: none !important; border: none !important; }
+        }
+        .mermaid svg {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 sm:p-8 flex flex-col items-center">
+
+    <!-- Top Header Bar -->
+    <div class="max-w-6xl w-full mb-6 flex flex-col md:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-5 no-print">
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 p-1.5 bg-white rounded-xl shadow-md border border-slate-700 flex items-center justify-center shrink-0">
+                <img src="images/devtrack-dt-icon.png" alt="DEVTRACK Logo" class="h-full w-auto object-contain">
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    DEV<span class="text-red-500">TRACK</span> <span class="text-slate-400 font-medium text-base sm:text-lg">&bull; Class Diagram UML</span>
+                </h1>
+                <p class="text-xs text-slate-400">Arsitektur Model, Relasi Entitas & Alur Data PT DIKTA</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="downloadPNG()" 
+                    class="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs shadow-lg transition-all flex items-center gap-2 active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                <span>Download Gambar PNG (HD)</span>
+            </button>
+
+            <button onclick="downloadSVG()" 
+                    class="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-xl font-bold text-xs transition-all flex items-center gap-2 active:scale-95">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                <span>Download Vektor SVG</span>
+            </button>
+
+            <button onclick="window.print()" 
+                    class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 active:scale-95">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                <span>Cetak / PDF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Diagram Canvas Container -->
+    <div id="diagram-wrapper" class="max-w-6xl w-full bg-white dark:bg-[#131c31] rounded-2xl p-6 sm:p-10 shadow-2xl border border-slate-800 overflow-x-auto flex flex-col items-center justify-center">
+        <div id="mermaid-container" class="mermaid w-full flex justify-center">
+classDiagram
+    direction TB
+
+    class User {
+        +int id
+        +string name
+        +string username
+        +string email
+        +string password
+        +string role
+        +string phone
+        +string status
+        +string avatar
+        +datetime created_at
+        +datetime updated_at
+        +isAdmin() bool
+        +isCoordinator() bool
+        +isTechnician() bool
+        +workOrdersAsTechnician() HasMany
+        +workOrdersAsCoordinator() HasMany
+        +carriedDevices() HasMany
+    }
+
+    class DeviceSpecification {
+        +int id
+        +string spec_code
+        +string name
+        +string brand
+        +string type
+        +text description
+        +datetime created_at
+        +datetime updated_at
+        +devices() HasMany
+    }
+
+    class Device {
+        +int id
+        +string registration_number
+        +string kode_spek
+        +string serial_number
+        +string name
+        +string brand
+        +string model
+        +string type
+        +string nojar
+        +string customer_name
+        +string address
+        +string area
+        +string activity
+        +string stock_status
+        +int current_technician_id
+        +string current_location
+        +string condition
+        +text notes
+        +boolean returned_to_lintasarta
+        +datetime created_at
+        +datetime updated_at
+        +getStockStatusLabelAttribute() string
+        +getFieldStatusLabelAttribute() string
+        +getStatusBadgeClassAttribute() string
+        +isAvailableInWarehouse() bool
+        +specification() BelongsTo
+        +currentTechnician() BelongsTo
+        +histories() HasMany
+        +workOrders() HasMany
+        +activeWorkOrder() HasOne
+    }
+
+    class WorkOrder {
+        +int id
+        +string nojar
+        +string title
+        +string category
+        +string customer_name
+        +string customer_phone
+        +string location_address
+        +float latitude
+        +float longitude
+        +int coordinator_id
+        +int technician_id
+        +int device_id
+        +string status
+        +text status_notes
+        +datetime pickup_time
+        +datetime arrival_time
+        +datetime completion_time
+        +datetime created_at
+        +datetime updated_at
+        +getStatusLabelAttribute() string
+        +getStatusBadgeClassAttribute() string
+        +coordinator() BelongsTo
+        +technician() BelongsTo
+        +device() BelongsTo
+        +evidence() HasMany
+        +histories() HasMany
+    }
+
+    class WorkOrderEvidence {
+        +int id
+        +int work_order_id
+        +string step_name
+        +string photo_path
+        +text notes
+        +datetime created_at
+        +datetime updated_at
+        +getPhotoUrlAttribute() string
+        +workOrder() BelongsTo
+    }
+
+    class DeviceHistory {
+        +int id
+        +int device_id
+        +int work_order_id
+        +int technician_id
+        +int actor_id
+        +string action
+        +string previous_status
+        +string new_status
+        +string from_location
+        +string to_location
+        +text notes
+        +string photo_path
+        +datetime created_at
+        +getPhotoUrlAttribute() string
+        +device() BelongsTo
+        +workOrder() BelongsTo
+        +technician() BelongsTo
+        +actor() BelongsTo
+    }
+
+    class StockOpname {
+        +int id
+        +string opname_code
+        +string title
+        +int period_month
+        +int period_year
+        +string location
+        +string status
+        +int total_system
+        +int total_physical
+        +int total_matched
+        +int total_missing
+        +int total_surplus
+        +text notes
+        +int conducted_by
+        +string admin_name
+        +datetime completed_at
+        +datetime created_at
+        +getMonthNameAttribute() string
+        +getLocationLabelAttribute() string
+        +items() HasMany
+        +conductor() BelongsTo
+    }
+
+    class StockOpnameItem {
+        +int id
+        +int stock_opname_id
+        +int device_id
+        +string registration_number
+        +string device_name
+        +string area
+        +string system_status
+        +string system_location
+        +string physical_status
+        +datetime scanned_at
+        +int scanned_by
+        +text notes
+        +getStatusBadgeAttribute() array
+        +stockOpname() BelongsTo
+        +device() BelongsTo
+        +scanner() BelongsTo
+    }
+
+    class AdminNotification {
+        +int id
+        +int device_id
+        +int technician_id
+        +int actor_id
+        +string type
+        +string title
+        +text message
+        +string registration_number
+        +string device_name
+        +string hub
+        +string source
+        +string target_url
+        +boolean is_read
+        +datetime read_at
+        +datetime created_at
+        +markAsRead() bool
+        +device() BelongsTo
+        +technician() BelongsTo
+        +actor() BelongsTo
+    }
+
+    User "1" --> "0..*" WorkOrder : menugaskan (coordinator_id)
+    User "1" --> "0..*" WorkOrder : mengerjakan (technician_id)
+    User "1" --> "0..*" Device : membawa_fisik (current_technician_id)
+    User "1" --> "0..*" DeviceHistory : melakukan_aksi (actor_id)
+    User "1" --> "0..*" StockOpname : mengadakan_opname (conducted_by)
+    User "1" --> "0..*" StockOpnameItem : memindai_barcode (scanned_by)
+    User "1" --> "0..*" AdminNotification : menerima / terkait
+
+    DeviceSpecification "1" --> "0..*" Device : memiliki_tipe (kode_spek)
+    Device "1" --> "0..*" DeviceHistory : memiliki_riwayat (device_id)
+    Device "1" --> "0..*" WorkOrder : dialokasikan_ke (device_id)
+    Device "1" --> "0..*" StockOpnameItem : dicocokkan (device_id)
+    Device "1" --> "0..*" AdminNotification : memicu_notifikasi (device_id)
+
+    WorkOrder "1" --> "0..*" WorkOrderEvidence : lampiran_foto (work_order_id)
+    WorkOrder "1" --> "0..*" DeviceHistory : log_penugasan (work_order_id)
+
+    StockOpname "1" --> "0..*" StockOpnameItem : berisi_rincian (stock_opname_id)
+        </div>
+    </div>
+
+    <!-- Hidden Canvas for PNG Export -->
+    <canvas id="export-canvas" style="display:none;"></canvas>
+
+    <footer class="mt-8 text-xs text-slate-500 text-center no-print">
+        &copy; 2026 PT DIKTA &bull; DEVTRACK Device Tracking System
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            fontFamily: 'Inter, sans-serif'
+        });
+
+        function getSvgElement() {
+            return document.querySelector('#mermaid-container svg');
+        }
+
+        function downloadSVG() {
+            const svg = getSvgElement();
+            if (!svg) {
+                alert('Diagram sedang dimuat, silakan coba beberapa detik lagi.');
+                return;
+            }
+            const serializer = new XMLSerializer();
+            const source = serializer.serializeToString(svg);
+            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = 'Class_Diagram_DEVTRACK_PT_DIKTA.svg';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadPNG() {
+            const svg = getSvgElement();
+            if (!svg) {
+                alert('Diagram sedang dimuat, silakan coba beberapa detik lagi.');
+                return;
+            }
+            
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(svg);
+            
+            // Tambahkan namespace jika belum ada
+            if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)){
+                source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+            }
+            
+            const bbox = svg.getBoundingClientRect();
+            const width = Math.max(svg.viewBox?.baseVal?.width || bbox.width || 1600, 1600);
+            const height = Math.max(svg.viewBox?.baseVal?.height || bbox.height || 1800, 1800);
+            
+            const scale = 2; // Resolusi tajam 2x
+            const canvas = document.getElementById('export-canvas');
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            const ctx = canvas.getContext('2d');
+            
+            const img = new Image();
+            const svgBlob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+            
+            img.onload = function() {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                
+                const pngUrl = canvas.toDataURL('image/png');
+                const downloadLink = document.createElement('a');
+                downloadLink.href = pngUrl;
+                downloadLink.download = 'Class_Diagram_DEVTRACK_PT_DIKTA.png';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            };
+            img.src = url;
+        }
+    </script>
+</body>
+</html>
