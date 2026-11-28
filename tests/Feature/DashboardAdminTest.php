@@ -394,6 +394,36 @@ class DashboardAdminTest extends TestCase
         $searchNojarResponse->assertSee('REG-INSTALLED-999');
         $searchNojarResponse->assertSee('NJR-SPECIFIC-888');
     }
+
+    public function test_returning_device_from_show_page_redirects_to_index_and_shows_success_popup()
+    {
+        $admin = User::where('role', 'admin')->first();
+        $device = Device::create([
+            'registration_number' => 'REG-RET-230',
+            'serial_number' => 'SN-RET-230',
+            'name' => 'Modem Return Test',
+            'brand' => 'Cisco',
+            'type' => 'Router',
+            'stock_status' => 'terinstal',
+            'current_location' => 'Gudang Pusat',
+        ]);
+
+        // Submit pengembalian dari halaman detail perangkat (/admin/devices/{id})
+        $response = $this->actingAs($admin)
+            ->from(route('admin.devices.show', $device))
+            ->followingRedirects()
+            ->post(route('admin.devices.return-lintasarta', $device), [
+                'destination' => 'Gudang Tekno',
+                'notes' => 'Dikembalikan karena selesai pakai',
+            ]);
+
+        // Harus redirect ke index (200 OK, bukan 404!) dan menampilkan popup berhasil
+        $response->assertStatus(200);
+        $response->assertSee('Berhasil!');
+        $response->assertSee('OK, Mengerti');
+        $response->assertSee('REG-RET-230');
+        $this->assertDatabaseMissing('devices', ['id' => $device->id]);
+    }
 }
 
 

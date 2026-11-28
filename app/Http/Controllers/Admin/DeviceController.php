@@ -760,6 +760,7 @@ class DeviceController extends Controller
         ]);
 
         $device = Device::findOrFail($validated['device_id']);
+        $deviceId = $device->id;
         $reg = $device->registration_number;
         $name = $device->name;
         $destination = $validated['destination'];
@@ -771,11 +772,16 @@ class DeviceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.",
-                'device_id' => $device->id,
+                'device_id' => $deviceId,
             ]);
         }
 
-        return redirect()->back()->with('success', "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.");
+        $previousUrl = url()->previous();
+        $redirectTarget = preg_match('#/admin/devices/' . $deviceId . '(?:$|/|\?)#', $previousUrl)
+            ? redirect()->route('admin.devices.index')
+            : redirect()->back();
+
+        return $redirectTarget->with('success', "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.");
     }
 
     public function returnToLintasarta(Request $request, Device $device)
@@ -785,6 +791,7 @@ class DeviceController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
+        $deviceId = $device->id;
         $reg = $device->registration_number;
         $name = $device->name;
         $destination = $validated['destination'];
@@ -796,11 +803,16 @@ class DeviceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.",
-                'device_id' => $device->id,
+                'device_id' => $deviceId,
             ]);
         }
 
-        return back()->with('success', "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.");
+        $previousUrl = url()->previous();
+        $redirectTarget = preg_match('#/admin/devices/' . $deviceId . '(?:$|/|\?)#', $previousUrl)
+            ? redirect()->route('admin.devices.index')
+            : back();
+
+        return $redirectTarget->with('success', "Perangkat {$reg} ({$name}) telah berhasil dikembalikan ke Lintasarta ({$destination}) dan otomatis data perangkatnya hilang dari sistem.");
     }
 
     public function updateArea(Request $request, Device $device)

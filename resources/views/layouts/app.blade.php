@@ -602,6 +602,39 @@
                     <span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">&check;</span>
                     <span>{{ session('success') }}</span>
                 </div>
+
+                <!-- Popup Notifikasi Berhasil -->
+                <div x-data="{ showSuccessPopup: true }"
+                     x-show="showSuccessPopup"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     @keydown.escape.window="showSuccessPopup = false"
+                     class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                    <div @click.away="showSuccessPopup = false"
+                         x-transition:enter="transition ease-out duration-200"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         class="bg-white dark:bg-[#131c31] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#243048] w-full max-w-sm p-6 text-center space-y-4">
+                        <div class="w-14 h-14 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/70 border-2 border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <div class="space-y-1.5">
+                            <h3 class="text-base font-extrabold text-slate-900 dark:text-white">Berhasil!</h3>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{{ session('success') }}</p>
+                        </div>
+                        <button type="button"
+                                @click="showSuccessPopup = false"
+                                class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors">
+                            OK, Mengerti
+                        </button>
+                    </div>
+                </div>
             @endif
 
             @if(session('info'))
